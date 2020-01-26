@@ -96,10 +96,18 @@ public class Runner {
 
     public static void main(String[] args) {
 
-        testGrid();
+        //testGrid();
+        testFile("d:\\sudoku.txt");
 
     }
 
+    static void testFile(String file) {
+        try {
+        QuizLoader ql = new QuizLoader(file, "Quiz1"); }
+        catch (Exception m) {
+            System.out.println("Exception occured: " + m);
+        }
+    }
     static void testGrid() {
         try {
             Grid grid = new Grid(DEFINEGRID);
