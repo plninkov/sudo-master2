@@ -80,6 +80,13 @@ class Cell {
         this.selectedValue = selectedValue;
     }
 
+    public void setFinalValue(Integer selectedValue) {
+        this.selectedValue = selectedValue;
+        this.setPossibleValues(null);
+        this.setFinal(true);
+        System.out.println("Final value: " + selectedValue + " at " +(getRow()+1) + (getCol()+1));
+    }
+
     public void setPossibleValues(ArrayList<Integer> possibleValues) {
         this.possibleValues = possibleValues;
     }
@@ -98,19 +105,21 @@ class Cell {
 
     // Remove value from possible values for a cell
     // Used when this value is set to a cell on the same row, col or block
-    // Cell can become final
-    boolean removePossibleValue(Integer removeVal) {
+    // return true if cell become final
+    boolean removePossibleValue(Integer removeVal) throws InvalidGridException {
         int index;
         if (possibleValues != null) {
             index = possibleValues.indexOf(removeVal);
             if (index != -1) {
                 possibleValues.remove(index);
                 if (possibleValues.size() == 1) {
-                    setSelectedValue(possibleValues.get(0));
-                    setFinal(true);
-                    setPossibleValues(null);
+                    setFinalValue(possibleValues.get(0));
                     return true;
                 }
+            }
+        } else {
+            if (removeVal.equals(getSelectedValue())) {
+                throw new InvalidGridException(removeVal + " value already set at " + getRow() + getCol());
             }
         }
         return false;
