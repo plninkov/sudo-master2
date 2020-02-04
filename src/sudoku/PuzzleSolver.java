@@ -1,7 +1,5 @@
 package sudoku;
 
-import com.sun.java.swing.plaf.windows.WindowsTextAreaUI;
-
 import java.util.ArrayList;
 
 public abstract class PuzzleSolver {
@@ -70,6 +68,9 @@ public abstract class PuzzleSolver {
         grid.setWaitingToProcess(newWaitingList);
     }
 
+    // For given column, row or block
+    // builds a map (using ArrayList): Each value is mapped with a list of possible places
+    // Updates finalValueList with all values that are set to their final place
     static ArrayList<Integer>[] getValueMap(Grid grid, Group group, int ind, ArrayList<Integer> finalValueList) {
         ArrayList<Integer>[] valueMap = new ArrayList[9];
         ArrayList<Integer> valuesList;
