@@ -66,11 +66,11 @@ class Cell {
         return isFinal;
     }
 
-    public ArrayList<Integer> getBlock() {
-        ArrayList<Integer> block = new ArrayList<Integer>(9);
+    public int[] getBlock() {
+        int[] block = new int[9];
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
-                block.add(((row / 3) * 3 + r) * 9 + (col / 3) * 3 + c);
+                block[r*3+c] = (((row / 3) * 3 + r) * 9 + (col / 3) * 3 + c);
             }
         }
         return block;

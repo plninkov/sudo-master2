@@ -8,7 +8,7 @@ public class Runner {
     public static void main(String[] args) {
         QuizLoader ql;
         //testGrid();
-        ql = testFile("quizzes.txt", "q7");
+        ql = testFile("quizzes.txt", "q6");
         if (ql != null) {
             testGrid(ql.getQuiz());
         }

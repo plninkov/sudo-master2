@@ -6,6 +6,12 @@ import java.util.ArrayList;
 
 public abstract class PuzzleSolver {
 
+    enum Group {
+        COL,
+        ROW,
+        BLOCK
+    }
+
     static void solve(Grid grid) {
         long duration;
         try {
@@ -32,9 +38,9 @@ public abstract class PuzzleSolver {
         Integer val;
         System.out.println("*** Waiting Elements Processing... ****");
         for (Integer index : grid.getWaitingToProcess()) {
-            row = grid.getCell(index).getRow();
-            col = grid.getCell(index).getCol();
-            val = grid.getCell(index).getSelectedValue();
+            row = grid.getCreateCell(index).getRow();
+            col = grid.getCreateCell(index).getCol();
+            val = grid.getCreateCell(index).getSelectedValue();
             //Process all elements of col
             for (int r = 0; r < 9; r++) {
                 if (r != row) {
@@ -52,8 +58,8 @@ public abstract class PuzzleSolver {
                 }
             }
             // Process all elements of the block
-            // Excluding from processing own row or col
-            for (Integer b : grid.getCell(index).getBlock()) {
+            // Exclusive own row or col
+            for (Integer b : grid.getCreateCell(index).getBlock()) {
                 if (b / 9 != row && b % 9 != col) {
                     if (grid.getCreateCell(b / 9, b % 9).removePossibleValue(val)) {
                         newWaitingList.add(b);
@@ -64,38 +70,62 @@ public abstract class PuzzleSolver {
         grid.setWaitingToProcess(newWaitingList);
     }
 
+    static ArrayList<Integer>[] getValueMap(Grid grid, Group group, int ind, ArrayList<Integer> finalValueList) {
+        ArrayList<Integer>[] valueMap = new ArrayList[9];
+        ArrayList<Integer> valuesList;
+        int index = 0;
+        Cell cell;
+        int[] block;
+
+        for (int i = 0; i < 9; i++) { // Init value map
+            valueMap[i] = new ArrayList<Integer>();
+        }
+        finalValueList.clear();
+
+        for (int i = 0; i < 9; i++) { // Each cell in column
+            switch (group) {
+                case COL:
+                    index = i * 9 + ind;
+                    break;
+                case ROW:
+                    index = ind * 9 + i;
+                    break;
+                case BLOCK:
+                    block = grid.getCreateCell(ind).getBlock();
+                    index = block[i];
+                    break;
+            }
+
+            cell = grid.getCreateCell(index);
+            if (cell.isFinal()) { // If cell is final, add selected value in final list
+                finalValueList.add(cell.getSelectedValue());
+            } else { // If cell is not final, add the cell in respective position for all possible values
+                valuesList = cell.getPossibleValues();
+                if (valuesList != null) {
+                    for (Integer val : valuesList) {
+                        valueMap[val - 1].add(index);
+                    }
+                }
+            }
+        }
+        return valueMap;
+    }
+
     // look for values that are possible on single cell
     // looping trough columns, lines, blocks
     static void setUniquePossibilities(Grid grid) {
-        ArrayList<Integer> valuesList;
         Cell cell;
-        ArrayList<Integer> finalValueList = new ArrayList<>(); // Used to store list with already fixed values for row, column or block
-        ArrayList<Integer>[] valueMap = new ArrayList[9]; // The cell (position) where value (from 1 to 9 minus 1) could be set
+        ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
+        ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
 
         //*** LOOP on columns ***
         System.out.println("*** COLS ****");
         for (int c = 0; c < 9; c++) {
-            finalValueList.clear();
-            for (int i = 0; i < 9; i++) { // Reset value map
-                valueMap[i] = new ArrayList<Integer>();
-            }
-            for (int r = 0; r < 9; r++) { // Each cell in column
-                cell = grid.getCell(r * 9 + c);
-                if (cell.isFinal()) { // If cell is final, add selected value in final list
-                    finalValueList.add(cell.getSelectedValue());
-                } else { // If cell is not final, add the cell in respective position for all possible values
-                    valuesList = cell.getPossibleValues();
-                    if (valuesList != null) {
-                        for (Integer val : valuesList) {
-                            valueMap[val - 1].add(r * 9 + c);
-                        }
-                    }
-                }
-            }
+            valueMap = getValueMap(grid, Group.COL, c, finalValueList);
             // Look for each values with single occurrence in possibilities for the column
             for (int val = 0; val < 9; val++) { // For each value with only one possible place in valueMap and not already final in column
                 if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCell(valueMap[val].get(0));
+                    cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
                 }
@@ -105,27 +135,11 @@ public abstract class PuzzleSolver {
         //*** loop on rows ***
         System.out.println("*** ROWS ****");
         for (int r = 0; r < 9; r++) {
-            finalValueList.clear();
-            for (int i = 0; i < 9; i++) { // Reset value map
-                valueMap[i] = new ArrayList<Integer>();
-            }
-            for (int c = 0; c < 9; c++) { // Each cell in row
-                cell = grid.getCell(r * 9 + c);
-                if (cell.isFinal()) { // If cell is final, add selected value in final list
-                    finalValueList.add(cell.getSelectedValue());
-                } else { // If cell is not final, add the cell in respective position for all possible values
-                    valuesList = cell.getPossibleValues();
-                    if (valuesList != null) {
-                        for (Integer val : valuesList) {
-                            valueMap[val - 1].add(r * 9 + c);
-                        }
-                    }
-                }
-            }
+            valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
             // Look for value single occurrence in possibilities for the row
             for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
                 if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCell(valueMap[val].get(0));
+                    cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
                 }
@@ -137,28 +151,11 @@ public abstract class PuzzleSolver {
         //     grid.print();
         int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
         for (int c : blockList) {
-            finalValueList.clear();
-            for (int i = 0; i < 9; i++) { // Reset value map
-                valueMap[i] = new ArrayList<Integer>();
-            }
-            ArrayList<Integer> block = grid.getCell(c).getBlock();
-            for (Integer ind : block) { // Each cell in the block
-                cell = grid.getCell(ind);
-                if (cell.isFinal()) { // If cell is final, add selected value in final list
-                    finalValueList.add(cell.getSelectedValue());
-                } else { // If cell is not final, add the cell in respective position for all possible values
-                    valuesList = cell.getPossibleValues();
-                    if (valuesList != null) {
-                        for (Integer val : valuesList) {
-                            valueMap[val - 1].add(ind);
-                        }
-                    }
-                }
-            }
+            valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
             // Look for value single occurrence in possibilities for the block
             for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
                 if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCell(valueMap[val].get(0));
+                    cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
                 }

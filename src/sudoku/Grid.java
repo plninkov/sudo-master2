@@ -55,13 +55,13 @@ class Grid {
         grid.set(index, cell);
     }
 
-    Cell getCell(int index) {
+    private Cell getCell(int index) {
         return grid.get(index);
     }
 
-    public Cell getCreateCell(int row, int col) {
+    public Cell getCreateCell(int row, int col) {               return getCreateCell( row * 9 + col);           }
+    public Cell getCreateCell(int index) {
         Cell cell;
-        int index = row * 9 + col;
         cell = getCell(index);
         if (cell == null) {
             cell = new Cell(0, index, false);
