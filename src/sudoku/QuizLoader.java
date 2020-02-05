@@ -28,7 +28,6 @@ public class QuizLoader {
         int lineNum = -1;
         String line;
         String[] lineStr;
-        int[] lineInt;
         try (Scanner fileReader = new Scanner(file)) {
             while (fileReader.hasNextLine() && lineNum < 9) {
                 // Loop until selected puzzle found
@@ -39,7 +38,7 @@ public class QuizLoader {
                 } else if (lineNum == -1) {
                     continue;
                 }
-                // Parse line into int grid
+                // Parse line into the grid
                 lineStr = line.split(",");
                 if (lineStr.length != 9) {
                     throw new InvalidGridException("Wrong elements number at line " + (lineNum + 1));
@@ -49,14 +48,16 @@ public class QuizLoader {
                 }
                 lineNum++;
             }
+
+            //Check for correct number of elements
             if (lineNum == -1) {
                 throw new InvalidGridException("Quiz not found: " + getTaskName());
             }
             if (lineNum < 8) {
-                throw new InvalidGridException("Lines: " + lineNum);
+                throw new InvalidGridException("Number of lines: " + lineNum);
             }
         } catch (FileNotFoundException m) {
-            System.out.println("Exception file not found: " + m);
+            System.out.println("Exception: " + m);
         }
     }
 }

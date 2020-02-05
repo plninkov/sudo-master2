@@ -1,11 +1,18 @@
 package sudoku;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class Grid {
     private ArrayList<Cell> grid;
     private ArrayList<Integer> waitingToProcess; // Cells with definitive numbers to remove from possible numbers
     private long creationTime;
+    private long solveTime;
+    private Logger logger;
 
     // Create full-sized (81 entries) Grid object from predefined task (int[][])
     //If an entry is 0 (undefined) then respective position is null
@@ -14,6 +21,19 @@ class Grid {
         creationTime = System.currentTimeMillis();
         grid = new ArrayList<Cell>(81);
         waitingToProcess = new ArrayList<Integer>();
+
+        //Logger with file handler
+        logger = Logger.getLogger(Grid.class.getName());
+        logger.setLevel(Level.FINEST);
+        try {
+            if (logger.getHandlers().length < 1)
+                logger.addHandler(new FileHandler("Grid.log", true));
+        } catch (IOException e) {
+            System.out.println("FileHandler error" + e);
+        }
+
+        logger.log(Level.WARNING, "Grid creation started");
+
         for (int row = 0; row < 9; row++) {
             for (int col = 0; col < 9; col++) {
                 if (entryList[row][col] > 0) {
@@ -24,12 +44,24 @@ class Grid {
         }
     }
 
+    public Logger getLogger() {
+        return logger;
+    }
+
     public long getCreationTime() {
         return creationTime;
     }
 
     public ArrayList<Integer> getWaitingToProcess() {
         return waitingToProcess;
+    }
+
+    public long getSolveTime() {
+        return solveTime;
+    }
+
+    public void setSolveTime(long solveTime) {
+        this.solveTime = solveTime;
     }
 
     public void setWaitingToProcess(ArrayList<Integer> waitingToProcess) {
@@ -59,7 +91,10 @@ class Grid {
         return grid.get(index);
     }
 
-    public Cell getCreateCell(int row, int col) {               return getCreateCell( row * 9 + col);           }
+    public Cell getCreateCell(int row, int col) {
+        return getCreateCell(row * 9 + col);
+    }
+
     public Cell getCreateCell(int index) {
         Cell cell;
         cell = getCell(index);
@@ -70,18 +105,22 @@ class Grid {
         return cell;
     }
 
-    public void print() {
+    public String[] print() {
         Cell cell;
-        for (int i = 0; i < 81; i++) {
-            cell = getCell(i);
-            if (cell == null) {
-                System.out.print("null ");
-            } else {
-                System.out.print(cell + " ");
+        String[] result = new String[9];
+
+        for (int r = 0; r < 9; r++) {
+            StringBuffer line = new StringBuffer(18);
+            for (int c = 0; c < 9; c++) {
+                cell = getCell(r * 9 + c);
+                if (cell == null) {
+                    line.append("null ");
+                } else {
+                    line.append(cell + " ");
+                }
             }
-            if (i % 9 == 8) {
-                System.out.println();
-            }
+            result[r] = line.toString();
         }
+        return result;
     }
 }

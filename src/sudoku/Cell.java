@@ -70,7 +70,7 @@ class Cell {
         int[] block = new int[9];
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
-                block[r*3+c] = (((row / 3) * 3 + r) * 9 + (col / 3) * 3 + c);
+                block[r * 3 + c] = (((row / 3) * 3 + r) * 9 + (col / 3) * 3 + c);
             }
         }
         return block;
@@ -84,7 +84,6 @@ class Cell {
         this.selectedValue = selectedValue;
         this.setPossibleValues(null);
         this.setFinal(true);
-        System.out.println("Final value: " + selectedValue + " at " +(getRow()+1) + (getCol()+1));
     }
 
     public void setPossibleValues(ArrayList<Integer> possibleValues) {
