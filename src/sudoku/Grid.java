@@ -3,7 +3,6 @@ package sudoku;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.FileHandler;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,6 +12,7 @@ class Grid {
     private long creationTime;
     private long solveTime;
     private Logger logger;
+    private int solvedCells;
 
     // Create full-sized (81 entries) Grid object from predefined task (int[][])
     //If an entry is 0 (undefined) then respective position is null
@@ -21,6 +21,7 @@ class Grid {
         creationTime = System.currentTimeMillis();
         grid = new ArrayList<Cell>(81);
         waitingToProcess = new ArrayList<Integer>();
+        this.solvedCells = 0;
 
         //Logger with file handler
         logger = Logger.getLogger(Grid.class.getName());
@@ -37,7 +38,7 @@ class Grid {
         for (int row = 0; row < 9; row++) {
             for (int col = 0; col < 9; col++) {
                 if (entryList[row][col] > 0) {
-                    grid.add(new Cell(entryList[row][col], row * 9 + col, true));
+                    grid.add(new Cell(entryList[row][col], row * 9 + col, true, this));
                     waitingToProcess.add(row * 9 + col);
                 } else grid.add(null);
             }
@@ -46,6 +47,10 @@ class Grid {
 
     public Logger getLogger() {
         return logger;
+    }
+
+    public int getSolvedCells() {
+        return solvedCells;
     }
 
     public long getCreationTime() {
@@ -66,6 +71,10 @@ class Grid {
 
     public void setWaitingToProcess(ArrayList<Integer> waitingToProcess) {
         this.waitingToProcess = waitingToProcess;
+    }
+
+    public void solveCell() {
+        this.solvedCells += 1;
     }
 
     public void addWaitingToProcess(Integer cellToProcess) {
@@ -99,7 +108,7 @@ class Grid {
         Cell cell;
         cell = getCell(index);
         if (cell == null) {
-            cell = new Cell(0, index, false);
+            cell = new Cell(0, index, false, this);
             this.setCell(index, cell);
         }
         return cell;

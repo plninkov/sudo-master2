@@ -14,17 +14,20 @@ public abstract class PuzzleSolver {
 
     static void solve(Grid grid) {
         Logger logger = grid.getLogger();
-        long duration;
+        int solvedCells;
         try {
             do {
-                logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0}", grid.getWaitingToProcess().size());
+                solvedCells = grid.getSolvedCells();
+                logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0} :: Solved {1}",
+                        new String[]{Integer.toString(grid.getWaitingToProcess().size()), Integer.toString(grid.getSolvedCells())});
                 while (grid.getWaitingToProcess().size() > 0) {
                     PuzzleSolver.processWaitingElements(grid);
                 }
                 PuzzleSolver.setUniquePossibilities(grid);
-            } while (grid.getWaitingToProcess().size() > 0);
+            } while (grid.getSolvedCells() > solvedCells); //(grid.getWaitingToProcess().size() > 0);
             grid.setSolveTime(System.currentTimeMillis());
-            logger.log(Level.WARNING, "Exit solve");
+            logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
+                    new String[]{Long.toString(grid.getSolveTime() - grid.getCreationTime()), Integer.toString(grid.getSolvedCells())});
         } catch (Exception m) {
             System.out.println("Exception occurred: " + m);
         }
@@ -75,6 +78,63 @@ public abstract class PuzzleSolver {
         grid.setWaitingToProcess(newWaitingList);
     }
 
+
+    // look for values that are possible on single cell
+    // looping trough columns, lines, blocks
+    static void setUniquePossibilities(Grid grid) throws InvalidGridException {
+        Cell cell;
+        ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
+        ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
+        Logger logger = grid.getLogger();
+
+        //*** LOOP on columns ***
+        logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
+        for (int c = 0; c < 9; c++) {
+            valueMap = getValueMap(grid, Group.COL, c, finalValueList);
+            // Look for each values with single occurrence in possibilities for the column
+            for (int val = 0; val < 9; val++) { // For each value with only one possible place in valueMap and not already final in column
+                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
+                    cell = grid.getCreateCell(valueMap[val].get(0));
+                    cell.setFinalValue(val + 1);
+                    grid.addWaitingToProcess(valueMap[val].get(0));
+                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                }
+            }
+        }
+
+        //*** loop on rows ***
+        logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
+        for (int r = 0; r < 9; r++) {
+            valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
+            // Look for value single occurrence in possibilities for the row
+            for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
+                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
+                    cell = grid.getCreateCell(valueMap[val].get(0));
+                    cell.setFinalValue(val + 1);
+                    grid.addWaitingToProcess(valueMap[val].get(0));
+                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                }
+            }
+        }
+
+        //*** loop on blocks 3x3 cells ***
+        logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
+        int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
+        for (int c : blockList) {
+            valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
+            // Look for value single occurrence in possibilities for the block
+            for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
+                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
+                    cell = grid.getCreateCell(valueMap[val].get(0));
+                    cell.setFinalValue(val + 1);
+                    grid.addWaitingToProcess(valueMap[val].get(0));
+                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                }
+            }
+        }
+        logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
+    }
+
     // For given column, row or block
     // builds a map (using ArrayList): Each value is mapped with a list of possible places
     // Updates finalValueList with all values that are set to their final place
@@ -117,68 +177,6 @@ public abstract class PuzzleSolver {
             }
         }
         return valueMap;
-    }
-
-    // look for values that are possible on single cell
-    // looping trough columns, lines, blocks
-    static void setUniquePossibilities(Grid grid) throws InvalidGridException {
-        Cell cell;
-        ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
-        ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
-        Logger logger = grid.getLogger();
-
-        //*** LOOP on columns ***
-        logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
-        for (int c = 0; c < 9; c++) {
-            valueMap = getValueMap(grid, Group.COL, c, finalValueList);
-            // Look for each values with single occurrence in possibilities for the column
-            for (int val = 0; val < 9; val++) { // For each value with only one possible place in valueMap and not already final in column
-                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCreateCell(valueMap[val].get(0));
-                    cell.setFinalValue(val + 1);
-                    grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[] {cell.getRow(), cell.getCol(), val+1});
-                }
-            }
-        }
-        while (grid.getWaitingToProcess().size() > 0) {
-            PuzzleSolver.processWaitingElements(grid);
-        }
-
-        //*** loop on rows ***
-        logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
-        for (int r = 0; r < 9; r++) {
-            valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
-            // Look for value single occurrence in possibilities for the row
-            for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
-                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCreateCell(valueMap[val].get(0));
-                    cell.setFinalValue(val + 1);
-                    grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[] {cell.getRow(), cell.getCol(), val+1});
-                }
-            }
-        }
-        while (grid.getWaitingToProcess().size() > 0) {
-            PuzzleSolver.processWaitingElements(grid);
-        }
-        //*** loop on blocks 3x3 cells ***
-        logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
-        //     grid.print();
-        int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
-        for (int c : blockList) {
-            valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
-            // Look for value single occurrence in possibilities for the block
-            for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
-                if (valueMap[val] != null && valueMap[val].size() == 1 && !finalValueList.contains(val + 1)) {
-                    cell = grid.getCreateCell(valueMap[val].get(0));
-                    cell.setFinalValue(val + 1);
-                    grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[] {cell.getRow(), cell.getCol(), val+1});
-                }
-            }
-        }
-        logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
     }
 }
 

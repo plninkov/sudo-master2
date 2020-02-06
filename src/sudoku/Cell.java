@@ -2,24 +2,24 @@ package sudoku;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 class Cell {
     private Integer selectedValue; //Cell value, could have 0 if not yet defined
     private int row, col;
     private ArrayList<Integer> possibleValues; // Define possible values for this cell, when not final
     private boolean isFinal; // True is only one value is possible
+    private Grid grid;
 
-   /* public Cell() {
-        this(0, 11, false);
-    }*/
-
-    public Cell(int value, int position, boolean setFinal) {
-        selectedValue = value;
-        isFinal = setFinal;
-        row = position / 9;
-        col = position % 9;
+    public Cell(int value, int position, boolean setFinal, Grid grid) {
+        this.selectedValue = value;
+        this.isFinal = setFinal;
+        this.row = position / 9;
+        this.col = position % 9;
+        this.grid = grid;
         if (setFinal) {
             possibleValues = null;
+            grid.solveCell();
         } else {
             possibleValues = new ArrayList<Integer>(9);
             for (int i = 1; i < 10; i++) {
@@ -27,7 +27,7 @@ class Cell {
             }
         }
     }
-
+/*
     public Cell(int value, int position, ArrayList<Integer> possibleValues) {
         selectedValue = value;
         row = position / 9;
@@ -40,7 +40,7 @@ class Cell {
             this.possibleValues = possibleValues;
             isFinal = false;
         }
-    }
+    }*/
 
     public ArrayList<Integer> getPossibleValues() {
         return possibleValues;
@@ -50,16 +50,16 @@ class Cell {
         return selectedValue;
     }
 
-    public String getPosition() {
-        return "" + (row + 1) + (col + 1);
-    }
-
     public int getRow() {
         return row;
     }
 
     public int getCol() {
         return col;
+    }
+
+    public Grid getGrid() {
+        return grid;
     }
 
     public boolean isFinal() {
@@ -76,22 +76,12 @@ class Cell {
         return block;
     }
 
-    public void setSelectedValue(Integer selectedValue) {
-        this.selectedValue = selectedValue;
-    }
-
     public void setFinalValue(Integer selectedValue) {
         this.selectedValue = selectedValue;
-        this.setPossibleValues(null);
-        this.setFinal(true);
-    }
-
-    public void setPossibleValues(ArrayList<Integer> possibleValues) {
-        this.possibleValues = possibleValues;
-    }
-
-    public void setFinal(boolean aFinal) {
-        isFinal = aFinal;
+        this.possibleValues = null;
+        this.isFinal = true;
+        grid.solveCell();
+        grid.getLogger().log(Level.FINEST, "Final value at {0}{1} : {2}", new String[]{Integer.toString(row), Integer.toString(col), Integer.toString(selectedValue)});
     }
 
     public String toString() {
@@ -103,7 +93,7 @@ class Cell {
     }
 
     // Remove value from possible values for a cell
-    // Used when this value is set to a cell on the same row, col or block
+    // Used when this value is set to other cell on the same row, col or block
     // return true if cell become final
     boolean removePossibleValue(Integer removeVal) throws InvalidGridException {
         int index;
