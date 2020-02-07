@@ -3,12 +3,11 @@ package sudoku;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.logging.Level;
 
 public class Runner {
     private static final String FILE_INPUT = "quizzes.txt";
-    private static final String FILE_OUTPUT = "gridResults.txt";
+    private static final String FILE_OUTPUT = "gridResultsForced.txt";
     private static String quiz = "q";
 
     public static void main(String[] args) {
@@ -25,6 +24,8 @@ public class Runner {
 
     static void testGrid(int[][] puzzle) {
         Grid grid;
+
+        //Prepare output file
         FileWriter fw = null;
         try {
             fw = new FileWriter(FILE_OUTPUT, true);
@@ -33,6 +34,7 @@ public class Runner {
         }
         BufferedWriter bw = new BufferedWriter(fw);
 
+        // Create grid
         try {
             grid = new Grid(puzzle);
             grid.getLogger().log(Level.WARNING, "Grid created from file {0}; Quiz name: {1}", new Object[]{FILE_INPUT, quiz});
@@ -40,9 +42,17 @@ public class Runner {
             System.out.println("Exception occurred: " + m);
             return;
         }
-        PuzzleSolver.solve(grid);
+
+        //Solve and write to file
         try {
-            bw.write(String.format("Quiz %s solve time milis %d %n", quiz, grid.getSolveTime() - grid.getCreationTime()));
+            PuzzleSolver.solve(grid);
+        } catch (InvalidGridException e) {
+            System.out.println(" Exception solving grid " + e);
+            grid.getLogger().log(Level.SEVERE, "Exception during logical solving {0}", e.getMessage());
+        }
+
+        try {
+            bw.write(String.format("Quiz %s solve time milis %d; solved: %d%n", quiz, grid.getSolveTime() - grid.getCreationTime(), grid.getSolvedCells()));
             for (String s : grid.print()) {
                 bw.write(s);
                 bw.newLine();
@@ -51,10 +61,61 @@ public class Runner {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Force solve remaining grid
+        if (grid.getSolvedCells() < 81) {
+            forceSolve(grid);
+        }
+    }
+
+    static void forceSolve(Grid grid) {
+        Grid forcedGrid;
+        ForceSolve solver;
+
+//Prepare output file
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(FILE_OUTPUT, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        BufferedWriter bw = new BufferedWriter(fw);
+
+// Find first unsolved cell
+        int index = 0;
+        while (grid.getCreateCell(index).isFinal()) {
+            index++;
+        }
+
+        for (int i = 0; i < grid.getCreateCell(index).getPossibleValues().size(); i++) {
+            grid.getLogger().log(Level.WARNING, "ForceSolve created from cell {0}; index: {1}", new Object[]{index, i});
+            solver = new ForceSolve(grid, index, i);
+            solver.start();
+            try {
+                solver.join();
+            } catch (InterruptedException e) {
+                System.out.println("Exception joining: " + e);
+            }
+            forcedGrid = solver.getGrid();
+            try {
+                bw.write(String.format("Quiz %s solve time milis %d; IsSolved: %s; SolvedCells %d%n",
+                        quiz, (forcedGrid.getSolveTime() - forcedGrid.getCreationTime()), solver.isSolved(), forcedGrid.getSolvedCells()));
+                for (String s : forcedGrid.print()) {
+                    bw.write(s);
+                    bw.newLine();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     static QuizLoader testFile(String file, String puzzle) {
-        Grid grid;
         try {
             return new QuizLoader(file, puzzle);
         } catch (Exception m) {
@@ -63,9 +124,4 @@ public class Runner {
         return null;
     }
 
-    static void testAList() {
-
-        ArrayList<Integer> test = new ArrayList<>();
-        System.out.println(test.size());
-    }
 }

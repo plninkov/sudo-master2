@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 
 class Grid {
     private ArrayList<Cell> grid;
-    private ArrayList<Integer> waitingToProcess; // Cells with definitive numbers to remove from possible numbers
+    private ArrayList<Integer> waitingToProcess; // Cells with defined solution to remove from possible numbers
     private long creationTime;
     private long solveTime;
     private Logger logger;
@@ -43,6 +43,11 @@ class Grid {
                 } else grid.add(null);
             }
         }
+    }
+
+    public Grid() {
+        creationTime = System.currentTimeMillis();
+        grid = new ArrayList<Cell>(81);
     }
 
     public Logger getLogger() {
@@ -125,11 +130,23 @@ class Grid {
                 if (cell == null) {
                     line.append("null ");
                 } else {
-                    line.append(cell + " ");
+                    line.append(cell).append(" ");
                 }
             }
             result[r] = line.toString();
         }
         return result;
+    }
+
+    public Grid clone() {
+        Grid clonedGrid = new Grid();
+
+        clonedGrid.waitingToProcess = new ArrayList<Integer>();;
+        clonedGrid.logger = this.logger;
+        clonedGrid.solvedCells = this.solvedCells;
+        for (int index = 0; index < 81; index++) {
+            clonedGrid.grid.add(index, new Cell(getCreateCell(index), clonedGrid));
+        }
+        return clonedGrid;
     }
 }

@@ -2,7 +2,7 @@ package sudoku;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.logging.Level;
+// import java.util.logging.Level;
 
 class Cell {
     private Integer selectedValue; //Cell value, could have 0 if not yet defined
@@ -27,20 +27,23 @@ class Cell {
             }
         }
     }
-/*
-    public Cell(int value, int position, ArrayList<Integer> possibleValues) {
-        selectedValue = value;
-        row = position / 9;
-        col = position % 9;
 
-        if (possibleValues.isEmpty()) {
+    public Cell(Cell cell, Grid grid) {
+        this.selectedValue = cell.getSelectedValue();
+        this.isFinal = cell.isFinal;
+        this.row = cell.getRow();
+        this.col = cell.getCol();
+        this.grid = grid;
+
+        if (cell.getPossibleValues() == null) {
             this.possibleValues = null;
-            isFinal = true;
         } else {
-            this.possibleValues = possibleValues;
-            isFinal = false;
+            this.possibleValues = new ArrayList<Integer>(9);
+            for (Integer v : cell.getPossibleValues()) {
+                this.possibleValues.add(new Integer(v.intValue()));
+            }
         }
-    }*/
+    }
 
     public ArrayList<Integer> getPossibleValues() {
         return possibleValues;
@@ -81,7 +84,6 @@ class Cell {
         this.possibleValues = null;
         this.isFinal = true;
         grid.solveCell();
-        grid.getLogger().log(Level.FINEST, "Final value at {0}{1} : {2}", new String[]{Integer.toString(row), Integer.toString(col), Integer.toString(selectedValue)});
     }
 
     public String toString() {

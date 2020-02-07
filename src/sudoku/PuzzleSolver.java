@@ -12,10 +12,10 @@ public abstract class PuzzleSolver {
         BLOCK
     }
 
-    static void solve(Grid grid) {
+    static void solve(Grid grid) throws InvalidGridException {
         Logger logger = grid.getLogger();
         int solvedCells;
-        try {
+  //      try {
             do {
                 solvedCells = grid.getSolvedCells();
                 logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0} :: Solved {1}",
@@ -28,9 +28,9 @@ public abstract class PuzzleSolver {
             grid.setSolveTime(System.currentTimeMillis());
             logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
                     new String[]{Long.toString(grid.getSolveTime() - grid.getCreationTime()), Integer.toString(grid.getSolvedCells())});
-        } catch (Exception m) {
+ /*       } catch (Exception m) {
             System.out.println("Exception occurred: " + m);
-        }
+        }*/
 
     }
 
@@ -81,7 +81,7 @@ public abstract class PuzzleSolver {
 
     // look for values that are possible on single cell
     // looping trough columns, lines, blocks
-    static void setUniquePossibilities(Grid grid) throws InvalidGridException {
+    static void setUniquePossibilities(Grid grid) {
         Cell cell;
         ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
         ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
@@ -97,13 +97,13 @@ public abstract class PuzzleSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+   //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
 
         //*** loop on rows ***
-        logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
+ //       logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
         for (int r = 0; r < 9; r++) {
             valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
             // Look for value single occurrence in possibilities for the row
@@ -112,13 +112,13 @@ public abstract class PuzzleSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+   //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
 
         //*** loop on blocks 3x3 cells ***
-        logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
+  //      logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
         int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
         for (int c : blockList) {
             valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
@@ -128,7 +128,7 @@ public abstract class PuzzleSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+  //                  logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
