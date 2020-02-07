@@ -72,7 +72,7 @@ public class Runner {
         Grid forcedGrid;
         ForceSolve solver;
 
-//Prepare output file
+        //Prepare output file
         FileWriter fw = null;
         try {
             fw = new FileWriter(FILE_OUTPUT, true);
@@ -81,7 +81,7 @@ public class Runner {
         }
         BufferedWriter bw = new BufferedWriter(fw);
 
-// Find first unsolved cell
+        // Find first unsolved cell
         int index = 0;
         while (grid.getCreateCell(index).isFinal()) {
             index++;
