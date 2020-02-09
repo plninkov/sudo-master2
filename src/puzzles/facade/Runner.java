@@ -1,28 +1,39 @@
-package sudoku;
+package puzzles.facade;
+
+import puzzles.sudoku.ForceSolver;
+import puzzles.sudoku.Grid;
+import puzzles.sudoku.InvalidGridException;
+import puzzles.sudoku.LogicalSolver;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Level;
 
+
 public class Runner {
     private static final String FILE_INPUT = "quizzes.txt";
     private static final String FILE_OUTPUT = "gridResultsForced.txt";
-    private static String quiz = "q";
+    private static final String quiz = "q";
+    private static final int START_NUM = 3;
+    private static final int END_NUM = 3;
+
 
     public static void main(String[] args) {
         QuizLoader ql;
-        for (int i = 1; i < 9; i++) {
-            quiz = quiz + i;
-            ql = testFile(FILE_INPUT, quiz);
+        //Load quizzes from a file
+        // For each quiz calls process method
+        for (int i = START_NUM; i <= END_NUM; i++) {
+            String quizName = quiz + i;
+            ql = testFile(FILE_INPUT, quizName);
             if (ql != null) {
-                testGrid(ql.getQuiz());
+                processQuiz(ql);
             }
-            quiz = "q";
         }
     }
 
-    static void testGrid(int[][] puzzle) {
+    static void processQuiz(QuizLoader ql) {
+        int[][] puzzle = ql.getQuiz();
         Grid grid;
 
         //Prepare output file
@@ -45,14 +56,14 @@ public class Runner {
 
         //Solve and write to file
         try {
-            PuzzleSolver.solve(grid);
+            LogicalSolver.solve(grid);
         } catch (InvalidGridException e) {
             System.out.println(" Exception solving grid " + e);
             grid.getLogger().log(Level.SEVERE, "Exception during logical solving {0}", e.getMessage());
         }
 
         try {
-            bw.write(String.format("Quiz %s solve time milis %d; solved: %d%n", quiz, grid.getSolveTime() - grid.getCreationTime(), grid.getSolvedCells()));
+            bw.write(String.format("Quiz %s solve time milis %d; solved: %d%n", ql.getTaskName(), grid.getSolveTime() - grid.getCreationTime(), grid.getSolvedCells()));
             for (String s : grid.print()) {
                 bw.write(s);
                 bw.newLine();
@@ -70,7 +81,9 @@ public class Runner {
 
     static void forceSolve(Grid grid) {
         Grid forcedGrid;
-        ForceSolve solver;
+        ForceSolver solver;
+        int forceThreadsNum;
+        ForceSolver[] forceThreads;
 
         //Prepare output file
         FileWriter fw = null;
@@ -86,28 +99,44 @@ public class Runner {
         while (grid.getCreateCell(index).isFinal()) {
             index++;
         }
+        forceThreadsNum = grid.getCreateCell(index).getPossibleValues().size();
+        forceThreads = new ForceSolver[forceThreadsNum];
 
-        for (int i = 0; i < grid.getCreateCell(index).getPossibleValues().size(); i++) {
-            grid.getLogger().log(Level.WARNING, "ForceSolve created from cell {0}; index: {1}", new Object[]{index, i});
-            solver = new ForceSolve(grid, index, i);
+        // Start threads
+        for (int i = 0; i < forceThreadsNum; i++) {
+            solver = new ForceSolver(grid, index, i);
+            forceThreads[i] = solver;
             solver.start();
+            grid.getLogger().log(Level.WARNING, "ForceSolve started from cell {0}; index: {1}", new Object[]{index, i});
+        }
+        // Wait for threads to stop
+        for (int i = 0; i < forceThreadsNum; i++) {
             try {
-                solver.join();
+                grid.getLogger().log(Level.FINE, "Join() {0}", forceThreads[i].getName());
+                forceThreads[i].join();
             } catch (InterruptedException e) {
                 System.out.println("Exception joining: " + e);
             }
-            forcedGrid = solver.getGrid();
-            try {
-                bw.write(String.format("Quiz %s solve time milis %d; IsSolved: %s; SolvedCells %d%n",
-                        quiz, (forcedGrid.getSolveTime() - forcedGrid.getCreationTime()), solver.isSolved(), forcedGrid.getSolvedCells()));
-                for (String s : forcedGrid.print()) {
-                    bw.write(s);
-                    bw.newLine();
+        }
+
+        grid.getLogger().log(Level.FINER, "Printing solution");
+        System.out.println(ForceSolver.isSolutionFound());
+        for (ForceSolver fs : forceThreads) {
+            if (fs.isSolved()) {
+                forcedGrid = fs.getGrid();
+                try {
+                    bw.write(String.format("ForceSolved Quiz %s  solve time milis %d; IsSolved: %s; SolvedCells %d%n",
+                            fs.getName(), (forcedGrid.getSolveTime() - forcedGrid.getCreationTime()), fs.isSolved(), forcedGrid.getSolvedCells()));
+                    for (String s : forcedGrid.print()) {
+                        bw.write(s);
+                        bw.newLine();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
+
         try {
             bw.close();
         } catch (IOException e) {

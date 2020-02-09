@@ -1,4 +1,4 @@
-package sudoku;
+package puzzles.sudoku;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,7 +6,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-class Grid {
+public class Grid {
     private ArrayList<Cell> grid;
     private ArrayList<Integer> waitingToProcess; // Cells with defined solution to remove from possible numbers
     private long creationTime;
@@ -88,15 +88,6 @@ class Grid {
         }
     }
 
-    public Integer getValue(int row, int col) {
-        Cell cell = grid.get((row - 1) * 9 + col - 1);
-        if (cell != null) {
-            return cell.getSelectedValue();
-        } else {
-            return 0;
-        }
-    }
-
     void setCell(int index, Cell cell) {
         grid.set(index, cell);
     }
@@ -141,7 +132,7 @@ class Grid {
     public Grid clone() {
         Grid clonedGrid = new Grid();
 
-        clonedGrid.waitingToProcess = new ArrayList<Integer>();;
+        clonedGrid.waitingToProcess = new ArrayList<Integer>();
         clonedGrid.logger = this.logger;
         clonedGrid.solvedCells = this.solvedCells;
         for (int index = 0; index < 81; index++) {

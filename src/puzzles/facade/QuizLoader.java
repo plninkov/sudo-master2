@@ -1,9 +1,12 @@
-package sudoku;
+package puzzles.facade;
+
+import puzzles.sudoku.InvalidGridException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
+// Load a quiz from file to int[][] array
 public class QuizLoader {
     private int[][] quiz = new int[9][9];
     private String fileName;

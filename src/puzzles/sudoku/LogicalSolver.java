@@ -1,10 +1,12 @@
-package sudoku;
+package puzzles.sudoku;
 
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class PuzzleSolver {
+// Looking for logical solution of the quiz
+// Setting all cell with only one possible value
+public abstract class LogicalSolver {
 
     enum Group {
         COL,
@@ -12,18 +14,18 @@ public abstract class PuzzleSolver {
         BLOCK
     }
 
-    static void solve(Grid grid) throws InvalidGridException {
+    public static void solve(Grid grid) throws InvalidGridException {
         Logger logger = grid.getLogger();
         int solvedCells;
   //      try {
             do {
                 solvedCells = grid.getSolvedCells();
-                logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0} :: Solved {1}",
-                        new String[]{Integer.toString(grid.getWaitingToProcess().size()), Integer.toString(grid.getSolvedCells())});
+       //         logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0} :: Solved {1}",
+         //               new String[]{Integer.toString(grid.getWaitingToProcess().size()), Integer.toString(grid.getSolvedCells())});
                 while (grid.getWaitingToProcess().size() > 0) {
-                    PuzzleSolver.processWaitingElements(grid);
+                    LogicalSolver.processWaitingElements(grid);
                 }
-                PuzzleSolver.setUniquePossibilities(grid);
+                LogicalSolver.setUniquePossibilities(grid);
             } while (grid.getSolvedCells() > solvedCells); //(grid.getWaitingToProcess().size() > 0);
             grid.setSolveTime(System.currentTimeMillis());
             logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
@@ -42,7 +44,7 @@ public abstract class PuzzleSolver {
         int row, col;
         Integer val;
 
-        logger.log(Level.INFO, "Enter solve :: waitingToProcess {0}", grid.getWaitingToProcess().size());
+ //       logger.log(Level.INFO, "Enter solve :: waitingToProcess {0}", grid.getWaitingToProcess().size());
 
         for (Integer index : grid.getWaitingToProcess()) {
             row = grid.getCreateCell(index).getRow();
@@ -67,8 +69,8 @@ public abstract class PuzzleSolver {
             // Process all elements of the block
             // Exclusive own row or col
             for (Integer b : grid.getCreateCell(index).getBlock()) {
-                if (b / 9 != row && b % 9 != col) {
-                    if (grid.getCreateCell(b / 9, b % 9).removePossibleValue(val)) {
+                if (b / 9 != row && b % 9 != col) { // not current element
+                    if (grid.getCreateCell(b).removePossibleValue(val)) {
                         newWaitingList.add(b);
                     }
                 }
@@ -88,7 +90,7 @@ public abstract class PuzzleSolver {
         Logger logger = grid.getLogger();
 
         //*** LOOP on columns ***
-        logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
+ //       logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
         for (int c = 0; c < 9; c++) {
             valueMap = getValueMap(grid, Group.COL, c, finalValueList);
             // Look for each values with single occurrence in possibilities for the column
@@ -132,7 +134,7 @@ public abstract class PuzzleSolver {
                 }
             }
         }
-        logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
+ //       logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
     }
 
     // For given column, row or block
