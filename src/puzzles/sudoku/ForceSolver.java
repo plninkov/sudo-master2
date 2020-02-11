@@ -9,7 +9,9 @@ public class ForceSolver extends Thread {
     private Grid grid;
     private int forceCellIndex;
     private int forceValIndex;
+    private long creationTime = System.currentTimeMillis();
     private static volatile boolean solutionFound = false;
+
 
     public ForceSolver(Grid originGrid, int forceCell, int forceVal) {
         super("Thread: " + forceCell + " " + forceVal);
@@ -56,29 +58,28 @@ public class ForceSolver extends Thread {
                         new Object[]{this.getName(), " " + forceCellIndex, (" " + forceValIndex)});
             } else {
                 matrix = forceLoop();
-            }
-        } catch (InvalidGridException e) {
-            System.out.format(" Force solve failed on cell %d, value index %d%n", forceCellIndex, forceValIndex);
-            grid.getLogger().log(Level.SEVERE, "Force solve {2} failed on cell {0}, value index {1}",
-                    new Object[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
-        }
-
-        //Store solution in grid
-        if (matrix != null) {
-            solutionFound = true;
-            grid.getLogger().log(Level.SEVERE, "Force solve {2} success (forced try) on cell {0}, value index {1}",
-                    new String[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
-            entryList = new int[9][9];
-            for (int r = 0; r < 9; r++) {
-                for (int c = 0; c < 9; c++) {
-                    entryList[r][c] = matrix.get(r * 9 + c);
+                //Store solution in grid
+                if (matrix != null) {
+                    solutionFound = true;
+                    grid.getLogger().log(Level.SEVERE, "Force solve {2} success (forced try) on cell {0}, value index {1}",
+                            new String[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
+                    entryList = new int[9][9];
+                    for (int r = 0; r < 9; r++) {
+                        for (int c = 0; c < 9; c++) {
+                            entryList[r][c] = matrix.get(r * 9 + c);
+                        }
+                    }
+                    grid = new Grid(entryList, grid.getName());
+                  } else {
+                    grid.getLogger().log(Level.SEVERE, "No solution found {0} :: exiting", this.getName());
                 }
             }
-            grid = new Grid(entryList);
-        } else {
-            grid.getLogger().log(Level.SEVERE, "No solution found {0} :: exiting", this.getName());
+        } catch (InvalidGridException e) {
+            System.out.format(" Force solve failed on cell %d, value index %d%n, reason: ", forceCellIndex, forceValIndex, e.getMessage());
+            grid.getLogger().log(Level.SEVERE, "Force solve {2} failed on cell {0}, value index {1}, Message: {3}",
+                    new Object[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName(), e.getMessage()});
         }
-    }
+            }
 
     private ArrayList<Integer> forceLoop() throws InvalidGridException {
         ArrayList<Integer> matrix = new ArrayList<>(81);
@@ -112,9 +113,15 @@ public class ForceSolver extends Thread {
         else return null;
     }
 
-    private boolean forceLoop(ArrayList<Integer> matrix, HashMap<Integer, ArrayList> unsolvedMap, int cellIndex) {
+    private boolean forceLoop(ArrayList<Integer> matrix, HashMap<Integer, ArrayList> unsolvedMap, int cellIndex) throws InvalidGridException {
         //ArrayList<Integer> solution;
         ArrayList<Integer> possibleValues = unsolvedMap.get(cellIndex);
+
+        // Exit force solve if any other thread found a solution
+        if (solutionFound) {
+            grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
+            throw new InvalidGridException("Thread exiting due to solutionFound == true : " + this.getName());
+        }
 
         if (possibleValues == null) { // Cell has final value
             if (cellIndex == 80) { // Final cell reached

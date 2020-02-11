@@ -1,22 +1,20 @@
 package puzzles.facade;
 
-import puzzles.sudoku.ForceSolver;
-import puzzles.sudoku.Grid;
-import puzzles.sudoku.InvalidGridException;
-import puzzles.sudoku.LogicalSolver;
+import puzzles.sudoku.*;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class Runner {
     private static final String FILE_INPUT = "quizzes.txt";
     private static final String FILE_OUTPUT = "gridResultsForced.txt";
     private static final String quiz = "q";
-    private static final int START_NUM = 3;
-    private static final int END_NUM = 3;
+    private static final int START_NUM = 1;
+    private static final int END_NUM = 8;
 
 
     public static void main(String[] args) {
@@ -35,109 +33,32 @@ public class Runner {
     static void processQuiz(QuizLoader ql) {
         int[][] puzzle = ql.getQuiz();
         Grid grid;
-
-        //Prepare output file
+        long startTime = System.currentTimeMillis();
         FileWriter fw = null;
-        try {
-            fw = new FileWriter(FILE_OUTPUT, true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        BufferedWriter bw = new BufferedWriter(fw);
+        BufferedWriter bw;
 
         // Create grid
         try {
-            grid = new Grid(puzzle);
-            grid.getLogger().log(Level.WARNING, "Grid created from file {0}; Quiz name: {1}", new Object[]{FILE_INPUT, quiz});
+            grid = new Grid(puzzle, ql.getTaskName());
+            grid.getLogger().log(Level.WARNING, "Grid created from file {0}; Quiz name: {1}", new Object[]{FILE_INPUT, grid.getName()});
         } catch (Exception m) {
+            Logger.getLogger(Runner.class.getName()).log(Level.WARNING, "Grid creation exception {0}", m.getMessage());
             System.out.println("Exception occurred: " + m);
             return;
         }
 
-        //Solve and write to file
-        try {
-            LogicalSolver.solve(grid);
-        } catch (InvalidGridException e) {
-            System.out.println(" Exception solving grid " + e);
-            grid.getLogger().log(Level.SEVERE, "Exception during logical solving {0}", e.getMessage());
-        }
+        Solver.solve(grid);
 
+        //Prepare output file and print
         try {
-            bw.write(String.format("Quiz %s solve time milis %d; solved: %d%n", ql.getTaskName(), grid.getSolveTime() - grid.getCreationTime(), grid.getSolvedCells()));
+            fw = new FileWriter(FILE_OUTPUT, true);
+            bw = new BufferedWriter(fw);
+            bw.write(String.format("Quiz %s solved: %d%n", grid.getName(), grid.getSolvedCells()));
             for (String s : grid.print()) {
                 bw.write(s);
                 bw.newLine();
             }
-            bw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Force solve remaining grid
-        if (grid.getSolvedCells() < 81) {
-            forceSolve(grid);
-        }
-    }
-
-    static void forceSolve(Grid grid) {
-        Grid forcedGrid;
-        ForceSolver solver;
-        int forceThreadsNum;
-        ForceSolver[] forceThreads;
-
-        //Prepare output file
-        FileWriter fw = null;
-        try {
-            fw = new FileWriter(FILE_OUTPUT, true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        BufferedWriter bw = new BufferedWriter(fw);
-
-        // Find first unsolved cell
-        int index = 0;
-        while (grid.getCreateCell(index).isFinal()) {
-            index++;
-        }
-        forceThreadsNum = grid.getCreateCell(index).getPossibleValues().size();
-        forceThreads = new ForceSolver[forceThreadsNum];
-
-        // Start threads
-        for (int i = 0; i < forceThreadsNum; i++) {
-            solver = new ForceSolver(grid, index, i);
-            forceThreads[i] = solver;
-            solver.start();
-            grid.getLogger().log(Level.WARNING, "ForceSolve started from cell {0}; index: {1}", new Object[]{index, i});
-        }
-        // Wait for threads to stop
-        for (int i = 0; i < forceThreadsNum; i++) {
-            try {
-                grid.getLogger().log(Level.FINE, "Join() {0}", forceThreads[i].getName());
-                forceThreads[i].join();
-            } catch (InterruptedException e) {
-                System.out.println("Exception joining: " + e);
-            }
-        }
-
-        grid.getLogger().log(Level.FINER, "Printing solution");
-        System.out.println(ForceSolver.isSolutionFound());
-        for (ForceSolver fs : forceThreads) {
-            if (fs.isSolved()) {
-                forcedGrid = fs.getGrid();
-                try {
-                    bw.write(String.format("ForceSolved Quiz %s  solve time milis %d; IsSolved: %s; SolvedCells %d%n",
-                            fs.getName(), (forcedGrid.getSolveTime() - forcedGrid.getCreationTime()), fs.isSolved(), forcedGrid.getSolvedCells()));
-                    for (String s : forcedGrid.print()) {
-                        bw.write(s);
-                        bw.newLine();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        try {
+            bw.write(String.format("Solving time: %d%n", System.currentTimeMillis() - startTime));
             bw.close();
         } catch (IOException e) {
             e.printStackTrace();

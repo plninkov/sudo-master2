@@ -27,9 +27,9 @@ public abstract class LogicalSolver {
                 }
                 LogicalSolver.setUniquePossibilities(grid);
             } while (grid.getSolvedCells() > solvedCells); //(grid.getWaitingToProcess().size() > 0);
-            grid.setSolveTime(System.currentTimeMillis());
-            logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
-                    new String[]{Long.toString(grid.getSolveTime() - grid.getCreationTime()), Integer.toString(grid.getSolvedCells())});
+     //       grid.setSolveTime(System.currentTimeMillis());
+  //          logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
+    //                new String[]{Long.toString(grid.getSolveTime() - grid.getCreationTime()), Integer.toString(grid.getSolvedCells())});
  /*       } catch (Exception m) {
             System.out.println("Exception occurred: " + m);
         }*/
