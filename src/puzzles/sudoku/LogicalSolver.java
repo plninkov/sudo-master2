@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 // Looking for logical solution of the quiz
 // Setting all cell with only one possible value
-public abstract class LogicalSolver {
+abstract class LogicalSolver {
 
     enum Group {
         COL,
@@ -15,36 +15,22 @@ public abstract class LogicalSolver {
     }
 
     public static void solve(Grid grid) throws InvalidGridException {
-        Logger logger = grid.getLogger();
         int solvedCells;
-  //      try {
-            do {
-                solvedCells = grid.getSolvedCells();
-       //         logger.log(Level.INFO, "Enter solve do/while :: waitingToProcess {0} :: Solved {1}",
-         //               new String[]{Integer.toString(grid.getWaitingToProcess().size()), Integer.toString(grid.getSolvedCells())});
-                while (grid.getWaitingToProcess().size() > 0) {
-                    LogicalSolver.processWaitingElements(grid);
-                }
-                LogicalSolver.setUniquePossibilities(grid);
-            } while (grid.getSolvedCells() > solvedCells); //(grid.getWaitingToProcess().size() > 0);
-     //       grid.setSolveTime(System.currentTimeMillis());
-  //          logger.log(Level.WARNING, "Exit solve :: duration {0} :: Solved cells: {1}",
-    //                new String[]{Long.toString(grid.getSolveTime() - grid.getCreationTime()), Integer.toString(grid.getSolvedCells())});
- /*       } catch (Exception m) {
-            System.out.println("Exception occurred: " + m);
-        }*/
-
+        do {
+            solvedCells = grid.getSolvedCells();
+            while (grid.getWaitingToProcess().size() > 0) {
+                LogicalSolver.processWaitingElements(grid);
+            }
+            LogicalSolver.setUniquePossibilities(grid);
+        } while (grid.getSolvedCells() > solvedCells);
     }
 
     // process all cells with defined value and
     // remove from the possible values on the same row; col and block
     static void processWaitingElements(Grid grid) throws InvalidGridException {
-        Logger logger = grid.getLogger();
         ArrayList<Integer> newWaitingList = new ArrayList<Integer>();
         int row, col;
         Integer val;
-
- //       logger.log(Level.INFO, "Enter solve :: waitingToProcess {0}", grid.getWaitingToProcess().size());
 
         for (Integer index : grid.getWaitingToProcess()) {
             row = grid.getCreateCell(index).getRow();
@@ -90,7 +76,7 @@ public abstract class LogicalSolver {
         Logger logger = grid.getLogger();
 
         //*** LOOP on columns ***
- //       logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
+        //       logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
         for (int c = 0; c < 9; c++) {
             valueMap = getValueMap(grid, Group.COL, c, finalValueList);
             // Look for each values with single occurrence in possibilities for the column
@@ -99,13 +85,13 @@ public abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-   //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                    //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
 
         //*** loop on rows ***
- //       logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
+        //       logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
         for (int r = 0; r < 9; r++) {
             valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
             // Look for value single occurrence in possibilities for the row
@@ -114,13 +100,13 @@ public abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-   //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                    //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
 
         //*** loop on blocks 3x3 cells ***
-  //      logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
+        //      logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
         int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
         for (int c : blockList) {
             valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
@@ -130,11 +116,11 @@ public abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-  //                  logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
+                    //                  logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
                 }
             }
         }
- //       logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
+        //       logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
     }
 
     // For given column, row or block

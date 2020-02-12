@@ -7,22 +7,29 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Grid {
+    private int[][] quest;
     private ArrayList<Cell> grid;
     private ArrayList<Integer> waitingToProcess; // Cells with defined solution to remove from possible numbers
- //   private long creationTime;
-   // private long solveTime;
     private Logger logger;
     private int solvedCells;
     private String name;
+    private Solution status;
+
+    enum Solution {
+        INITIAL,
+        LOGICAL,
+        FORCE,
+        MULTIPLE
+    }
 
     // Create full-sized (81 entries) Grid object from predefined task (int[][])
     //If an entry is 0 (undefined) then respective position is null
     // Can trow exception if task is un-solvable (ex. same values at one row or col)
     public Grid(int[][] entryList, String name) {
- //      creationTime = System.currentTimeMillis();
         grid = new ArrayList<Cell>(81);
         waitingToProcess = new ArrayList<Integer>();
         this.solvedCells = 0;
+        quest = entryList;
 
         //Logger with file handler
         logger = Logger.getLogger(Grid.class.getName());
@@ -34,8 +41,6 @@ public class Grid {
             System.out.println("FileHandler error" + e);
         }
 
-        logger.log(Level.WARNING, "Grid creation started");
-
         for (int row = 0; row < 9; row++) {
             for (int col = 0; col < 9; col++) {
                 if (entryList[row][col] > 0) {
@@ -45,10 +50,11 @@ public class Grid {
             }
         }
         this.name = name;
+        status = Solution.INITIAL;
+        logger.log(Level.FINE, "Grid created {0};", new Object[]{name});
     }
 
     public Grid() {
-  //      creationTime = System.currentTimeMillis();
         grid = new ArrayList<Cell>(81);
     }
 
@@ -60,28 +66,24 @@ public class Grid {
         return solvedCells;
     }
 
-/*    public long getCreationTime() {
-        return creationTime;
-    }
-*/
     public String getName() {
         return name;
+    }
+
+    public ArrayList<Cell> getGrid() {
+        return grid;
     }
 
     public ArrayList<Integer> getWaitingToProcess() {
         return waitingToProcess;
     }
 
-  /*  public long getSolveTime() {
-        return solveTime;
-    }
-
-    public void setSolveTime(long solveTime) {
-        this.solveTime = solveTime;
-    }
-*/
     public void setWaitingToProcess(ArrayList<Integer> waitingToProcess) {
         this.waitingToProcess = waitingToProcess;
+    }
+
+    public void setStatus(Solution solution) {
+        this.status = solution;
     }
 
     public void solveCell() {
@@ -97,11 +99,7 @@ public class Grid {
     void setCell(int index, Cell cell) {
         grid.set(index, cell);
     }
-/*
-    public void setCreationTime(long creationTime) {
-        this.creationTime = creationTime;
-    }
-*/
+
     private Cell getCell(int index) {
         return grid.get(index);
     }
@@ -118,6 +116,10 @@ public class Grid {
             this.setCell(index, cell);
         }
         return cell;
+    }
+
+    public Solution getStatus() {
+        return status;
     }
 
     public String[] print() {
@@ -150,5 +152,10 @@ public class Grid {
             clonedGrid.grid.add(index, new Cell(getCreateCell(index), clonedGrid));
         }
         return clonedGrid;
+    }
+
+    public void solve(){
+        Solver.solve(this);
+
     }
 }

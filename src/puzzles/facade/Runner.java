@@ -16,7 +16,6 @@ public class Runner {
     private static final int START_NUM = 1;
     private static final int END_NUM = 8;
 
-
     public static void main(String[] args) {
         QuizLoader ql;
         //Load quizzes from a file
@@ -34,20 +33,12 @@ public class Runner {
         int[][] puzzle = ql.getQuiz();
         Grid grid;
         long startTime = System.currentTimeMillis();
-        FileWriter fw = null;
+        FileWriter fw;
         BufferedWriter bw;
 
         // Create grid
-        try {
-            grid = new Grid(puzzle, ql.getTaskName());
-            grid.getLogger().log(Level.WARNING, "Grid created from file {0}; Quiz name: {1}", new Object[]{FILE_INPUT, grid.getName()});
-        } catch (Exception m) {
-            Logger.getLogger(Runner.class.getName()).log(Level.WARNING, "Grid creation exception {0}", m.getMessage());
-            System.out.println("Exception occurred: " + m);
-            return;
-        }
-
-        Solver.solve(grid);
+        grid = new Grid(puzzle, ql.getTaskName());
+        grid.solve();
 
         //Prepare output file and print
         try {
@@ -58,7 +49,7 @@ public class Runner {
                 bw.write(s);
                 bw.newLine();
             }
-            bw.write(String.format("Solving time: %d%n", System.currentTimeMillis() - startTime));
+            bw.write(String.format("Solving status: %s; Solving time: %d%n", grid.getStatus(), System.currentTimeMillis() - startTime));
             bw.close();
         } catch (IOException e) {
             e.printStackTrace();

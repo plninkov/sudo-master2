@@ -2,15 +2,15 @@ package puzzles.sudoku;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 // Looping on all unsolved cells and checks if any combination is valid
-public class ForceSolver extends Thread {
+class ForceSolver extends Thread {
     private Grid grid;
     private int forceCellIndex;
     private int forceValIndex;
-    private long creationTime = System.currentTimeMillis();
-    private static volatile boolean solutionFound = false;
+    private static volatile AtomicBoolean solutionFound = new AtomicBoolean(false);
 
 
     public ForceSolver(Grid originGrid, int forceCell, int forceVal) {
@@ -30,10 +30,6 @@ public class ForceSolver extends Thread {
         grid.getLogger().log(Level.FINE, "ForceSolve created successfully {0}", this.getName());
     }
 
-    public static boolean isSolutionFound() {
-        return solutionFound;
-    }
-
     public Grid getGrid() {
         return grid;
     }
@@ -44,7 +40,7 @@ public class ForceSolver extends Thread {
 
     @Override
     public void run() {
-        ArrayList<Integer> matrix = null;
+        ArrayList<Integer> matrix;
         int[][] entryList;
         Cell fixCell = this.grid.getCreateCell(forceCellIndex);
         fixCell.setFinalValue(fixCell.getPossibleValues().get(forceValIndex));
@@ -53,14 +49,14 @@ public class ForceSolver extends Thread {
         try {
             LogicalSolver.solve(this.grid);
             if (isSolved()) {
-                solutionFound = true;
+                solutionFound.set(true);
                 grid.getLogger().log(Level.SEVERE, "Force solve {0} success (logical try) on cell {1}, value index {2}",
                         new Object[]{this.getName(), " " + forceCellIndex, (" " + forceValIndex)});
             } else {
                 matrix = forceLoop();
                 //Store solution in grid
                 if (matrix != null) {
-                    solutionFound = true;
+                    solutionFound.set(true);
                     grid.getLogger().log(Level.SEVERE, "Force solve {2} success (forced try) on cell {0}, value index {1}",
                             new String[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
                     entryList = new int[9][9];
@@ -70,16 +66,16 @@ public class ForceSolver extends Thread {
                         }
                     }
                     grid = new Grid(entryList, grid.getName());
-                  } else {
+                } else {
                     grid.getLogger().log(Level.SEVERE, "No solution found {0} :: exiting", this.getName());
                 }
             }
         } catch (InvalidGridException e) {
-            System.out.format(" Force solve failed on cell %d, value index %d%n, reason: ", forceCellIndex, forceValIndex, e.getMessage());
+            System.out.format(" Force solve failed on cell %d, value index %d, reason: %s%n", forceCellIndex, forceValIndex, e.getMessage());
             grid.getLogger().log(Level.SEVERE, "Force solve {2} failed on cell {0}, value index {1}, Message: {3}",
                     new Object[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName(), e.getMessage()});
         }
-            }
+    }
 
     private ArrayList<Integer> forceLoop() throws InvalidGridException {
         ArrayList<Integer> matrix = new ArrayList<>(81);
@@ -118,7 +114,7 @@ public class ForceSolver extends Thread {
         ArrayList<Integer> possibleValues = unsolvedMap.get(cellIndex);
 
         // Exit force solve if any other thread found a solution
-        if (solutionFound) {
+        if (solutionFound.get()) {
             grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
             throw new InvalidGridException("Thread exiting due to solutionFound == true : " + this.getName());
         }
@@ -161,7 +157,7 @@ public class ForceSolver extends Thread {
             for (int i = 0; i < 9; i++) {
                 row[i] = matrix.get(ind + i);
             }
-            result = checkRow((Integer[]) row);
+            result = checkRow(row);
             ind += 9;
         }
         return result;
@@ -209,7 +205,7 @@ public class ForceSolver extends Thread {
         int ind = 0;
         while (result && ind < 8) {
             for (int k = ind + 1; k <= 8; k++) {
-                if (!matrixRow[ind].equals(Integer.valueOf(0)) && matrixRow[ind].equals(matrixRow[k])) {
+                if (!matrixRow[ind].equals(0) && matrixRow[ind].equals(matrixRow[k])) {
                     result = false;
                     break;
                 }

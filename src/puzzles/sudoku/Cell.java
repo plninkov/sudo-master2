@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 // import java.util.logging.Level;
 
-public class Cell {
+class Cell {
     private Integer selectedValue; //Cell value, could have 0 if not yet defined
     private int row, col;
     private ArrayList<Integer> possibleValues; // Define possible values for this cell, when not final
