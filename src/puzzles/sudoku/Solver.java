@@ -1,5 +1,6 @@
 package puzzles.sudoku;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,18 +15,18 @@ class Solver {
 
         if (grid.getSolvedCells() < 81) {
             forceSolveThreads(grid);
-        } else {
-            grid.setStatus(Grid.Solution.LOGICAL);
+
         }
         logger.log(Level.FINE, "Solving {0}, Result status: {1}, solved cells: {2}", new Object[]{grid.getName(), grid.getStatus().toString(), grid.getSolvedCells()});
     }
 
     static void forceSolveThreads(Grid grid) {
-        Grid forcedGrid = null;
-        ForceSolver solver;
+        //    Grid forcedGrid = null;
+        //     ForceSolver solver;
         int forceThreadsNum;
-        ForceSolver[] forceThreads;
+        //     ForceSolver[] forceThreads;
         Logger logger = grid.getLogger();
+        CountDownLatch doneSignal;
 
         // Find first unsolved cell
         /* This can be improved to look for a cell with specific number possibilities, thus create desired number of threads
@@ -36,18 +37,25 @@ class Solver {
             index++;
         }
         forceThreadsNum = grid.getCreateCell(index).getPossibleValues().size();
-        forceThreads = new ForceSolver[forceThreadsNum];
+        //   forceThreads = new ForceSolver[forceThreadsNum];
+        doneSignal = new CountDownLatch(forceThreadsNum);
 
         // Start threads
+        ForceSolver.reset();
         for (int i = 0; i < forceThreadsNum; i++) {
-            solver = new ForceSolver(grid, index, i);
-            forceThreads[i] = solver;
-            solver.start();
+            new ForceSolver(grid, index, i, doneSignal).start();
             logger.log(Level.FINER, "ForceSolve started from cell {0}; index: {1}", new Object[]{index, i});
         }
 
         // Wait for threads to complete
-        for (int i = 0; i < forceThreadsNum; i++) {
+        try {
+            doneSignal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            grid.getLogger().log(Level.SEVERE, "Exception {0}", e.getStackTrace());
+        }
+        // Alternatively - use join on all threads
+        /*for (int i = 0; i < forceThreadsNum; i++) {
             try {
                 grid.getLogger().log(Level.FINEST, "Join() {0}", forceThreads[i].getName());
                 forceThreads[i].join();
@@ -62,13 +70,6 @@ class Solver {
                 forcedGrid = fs.getGrid();
                 break;
             }
-        }
-        if (forcedGrid != null) {
-            for (int i = 0; i < 81; i++) {
-                if (!grid.getCreateCell(i).isFinal())
-                    grid.getCreateCell(i).setFinalValue(forcedGrid.getCreateCell(i).getSelectedValue());
-            }
-            grid.setStatus(Grid.Solution.FORCE);
-        }
+        } */
     }
 }

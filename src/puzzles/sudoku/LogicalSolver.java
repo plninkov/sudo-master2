@@ -23,11 +23,14 @@ abstract class LogicalSolver {
             }
             LogicalSolver.setUniquePossibilities(grid);
         } while (grid.getSolvedCells() > solvedCells);
+        if (grid.getSolvedCells() == 81) {
+            grid.setStatus(Grid.Solution.LOGICAL);
+        }
     }
 
     // process all cells with defined value and
     // remove from the possible values on the same row; col and block
-    static void processWaitingElements(Grid grid) throws InvalidGridException {
+    private static void processWaitingElements(Grid grid) throws InvalidGridException {
         ArrayList<Integer> newWaitingList = new ArrayList<Integer>();
         int row, col;
         Integer val;
@@ -69,7 +72,7 @@ abstract class LogicalSolver {
 
     // look for values that are possible on single cell
     // looping trough columns, lines, blocks
-    static void setUniquePossibilities(Grid grid) {
+    private static void setUniquePossibilities(Grid grid) {
         Cell cell;
         ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
         ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
@@ -126,7 +129,7 @@ abstract class LogicalSolver {
     // For given column, row or block
     // builds a map (using ArrayList): Each value is mapped with a list of possible places
     // Updates finalValueList with all values that are set to their final place
-    static ArrayList<Integer>[] getValueMap(Grid grid, Group group, int ind, ArrayList<Integer> finalValueList) {
+    private static ArrayList<Integer>[] getValueMap(Grid grid, Group group, int ind, ArrayList<Integer> finalValueList) {
         ArrayList<Integer>[] valueMap = new ArrayList[9];
         ArrayList<Integer> valuesList;
         int index = 0;

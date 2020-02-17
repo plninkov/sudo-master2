@@ -19,6 +19,7 @@ public class Grid {
         INITIAL,
         LOGICAL,
         FORCE,
+        FORCELOGICAL,
         MULTIPLE
     }
 
@@ -68,10 +69,6 @@ public class Grid {
 
     public String getName() {
         return name;
-    }
-
-    public ArrayList<Cell> getGrid() {
-        return grid;
     }
 
     public ArrayList<Integer> getWaitingToProcess() {

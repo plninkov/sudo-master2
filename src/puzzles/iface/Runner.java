@@ -1,12 +1,10 @@
-package puzzles.facade;
+package puzzles.iface;
 
 import puzzles.sudoku.*;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class Runner {
@@ -14,7 +12,7 @@ public class Runner {
     private static final String FILE_OUTPUT = "gridResultsForced.txt";
     private static final String quiz = "q";
     private static final int START_NUM = 1;
-    private static final int END_NUM = 8;
+    private static final int END_NUM = 11;
 
     public static void main(String[] args) {
         QuizLoader ql;

@@ -1,4 +1,4 @@
-package puzzles.facade;
+package puzzles.iface;
 
 import puzzles.sudoku.InvalidGridException;
 
