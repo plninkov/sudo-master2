@@ -14,6 +14,7 @@ public class Grid {
     private int solvedCells;
     private String name;
     private Solution status;
+    private int solutionNumber;
 
     enum Solution {
         INITIAL,
@@ -77,6 +78,14 @@ public class Grid {
 
     public void setWaitingToProcess(ArrayList<Integer> waitingToProcess) {
         this.waitingToProcess = waitingToProcess;
+    }
+
+    public int getSolutionNumber() {
+        return solutionNumber;
+    }
+
+    public void setSolutionNumber(int solutionNumber) {
+        this.solutionNumber = solutionNumber;
     }
 
     public void setStatus(Solution solution) {
@@ -151,8 +160,24 @@ public class Grid {
         return clonedGrid;
     }
 
-    public void solve(){
+    public void solve() {
         Solver.solve(this);
 
+    }
+
+    public void setSolution(Grid solution) {
+        for (int i = 0; i < 81; i++) {
+            if (!this.getCreateCell(i).isFinal()) { //For all non-final cells
+                this.getCreateCell(i).setFinalValue(solution.getCreateCell(i).getSelectedValue()); // Set value
+            }
+        }
+    }
+
+    public void setSolution(ArrayList<Integer> matrix) {
+        for (int i = 0; i < 81; i++) {
+            if (!this.getCreateCell(i).isFinal()) { //For all non-final cells
+                this.getCreateCell(i).setFinalValue(matrix.get(i)); // Set value
+            }
+        }
     }
 }

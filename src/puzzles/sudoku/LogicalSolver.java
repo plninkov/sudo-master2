@@ -25,6 +25,7 @@ abstract class LogicalSolver {
         } while (grid.getSolvedCells() > solvedCells);
         if (grid.getSolvedCells() == 81) {
             grid.setStatus(Grid.Solution.LOGICAL);
+            grid.setSolutionNumber(1);
         }
     }
 

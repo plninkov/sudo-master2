@@ -11,7 +11,8 @@ import java.util.logging.Level;
 class ForceSolver extends Thread {
     private static Grid originGrid = null; // Store origin grid for all threads
     private static AtomicBoolean solutionFound = new AtomicBoolean(false);
-    private static AtomicInteger solutions = new AtomicInteger(0);
+    private static AtomicInteger solutions = new AtomicInteger(0); // Possible solution counter
+    private static final boolean firstSolution = false; // Look and count all solutions
 
     private int forceCellIndex;
     private int forceValIndex;
@@ -19,21 +20,22 @@ class ForceSolver extends Thread {
     private CountDownLatch doneSignal;
 
 
-    public ForceSolver(Grid originGrid, int forceCell, int forceVal, CountDownLatch doneSignal) {
+    public ForceSolver(Grid entryGrid, int forceCell, int forceVal, CountDownLatch doneSignal) {
         super("Thread: " + forceCell + " " + forceVal);
 
         try {
-            if (originGrid.getWaitingToProcess() != null && originGrid.getWaitingToProcess().size() > 0)
+            if (ForceSolver.originGrid == null && entryGrid.getWaitingToProcess() != null && entryGrid.getWaitingToProcess().size() > 0)
                 throw new InvalidGridException("Force solving before clearing waiting to process elements: " + this.getName());
         } catch (InvalidGridException e) {
-            originGrid.getLogger().log(Level.WARNING, "ForceSolve Exception {0}, Solver: {1}", new Object[]{originGrid.getWaitingToProcess().toString(), this.getName()});
+            entryGrid.getLogger().log(Level.WARNING, "ForceSolve Exception {0}, Solver: {1}",
+                    new Object[]{entryGrid.getWaitingToProcess().toString(), this.getName()});
             System.out.println("Force solve error " + e);
         }
         this.doneSignal = doneSignal;
         synchronized (ForceSolver.class) {
-            if (ForceSolver.originGrid == null) ForceSolver.originGrid = originGrid;
+            if (ForceSolver.originGrid == null) ForceSolver.originGrid = entryGrid.clone();
         }
-        this.grid = originGrid.clone();
+        this.grid = entryGrid.clone();
         this.forceCellIndex = forceCell;
         this.forceValIndex = forceVal;
         grid.getLogger().log(Level.FINE, "ForceSolve created successfully {0}", this.getName());
@@ -47,7 +49,8 @@ class ForceSolver extends Thread {
     public void run() {
         ArrayList<Integer> matrix;
         Cell fixCell = this.grid.getCreateCell(forceCellIndex);
-        if (solutionFound.get()) {
+
+        if (ForceSolver.firstSolution && ForceSolver.solutionFound.get()) {
             grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
             doneSignal.countDown();
         } else {
@@ -58,9 +61,10 @@ class ForceSolver extends Thread {
                 LogicalSolver.solve(this.grid);
                 if (isSolved() && ForceSolver.solutionFound.compareAndSet(false, true)) {
                     synchronized (ForceSolver.originGrid) {
-                        setSolution(grid);
+                        ForceSolver.originGrid.setSolution(grid);
+                        ForceSolver.originGrid.setStatus(Grid.Solution.FORCELOGICAL);
                     }
-                    ForceSolver.originGrid.setStatus(Grid.Solution.FORCELOGICAL);
+                    ForceSolver.solutions.incrementAndGet();
                     grid.getLogger().log(Level.SEVERE, "Force solve {0} success (logical try) on cell {1}, value index {2}",
                             new Object[]{this.getName(), " " + forceCellIndex, (" " + forceValIndex)});
                 } else {
@@ -71,15 +75,15 @@ class ForceSolver extends Thread {
                         grid.getLogger().log(Level.SEVERE, "Force solve {2} success (forced try) on cell {0}, value index {1}",
                                 new String[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
                         synchronized (ForceSolver.originGrid) {
-                            setSolution(matrix);
+                            ForceSolver.originGrid.setSolution(matrix);
+                            ForceSolver.originGrid.setStatus(Grid.Solution.FORCE);
                         }
-                        ForceSolver.originGrid.setStatus(Grid.Solution.FORCE);
                     } else {
                         grid.getLogger().log(Level.SEVERE, "No solution found {0} :: exiting", this.getName());
                     }
                 }
             } catch (InvalidGridException e) {
-                System.out.format(" Force solve failed on cell %d, value index %d, reason: %s%n", forceCellIndex, forceValIndex, e.getMessage());
+                System.out.format("Force solve failed on cell %d, value index %d, reason: %s%n", forceCellIndex, forceValIndex, e.getMessage());
                 grid.getLogger().log(Level.SEVERE, "Force solve {2} failed on cell {0}, value index {1}, Message: {3}",
                         new Object[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName(), e.getMessage()});
             } finally {
@@ -88,24 +92,9 @@ class ForceSolver extends Thread {
         }
     }
 
-    private void setSolution(ArrayList<Integer> matrix) {
-        for (int i = 0; i < 81; i++) {
-            if (!ForceSolver.originGrid.getCreateCell(i).isFinal()) { //For all non-final cells
-                ForceSolver.originGrid.getCreateCell(i).setFinalValue(matrix.get(i)); // Set value
-            }
-        }
-    }
-
-    private void setSolution(Grid matrix) {
-        for (int i = 0; i < 81; i++) {
-            if (!ForceSolver.originGrid.getCreateCell(i).isFinal()) { //For all non-final cells
-                ForceSolver.originGrid.getCreateCell(i).setFinalValue(matrix.getCreateCell(i).getSelectedValue()); // Set value
-            }
-        }
-    }
-
     private ArrayList<Integer> forceLoop() throws InvalidGridException {
         ArrayList<Integer> matrix = new ArrayList<>(81);
+        ArrayList<Integer> resultMatrix = new ArrayList<>(81);
         Cell cell;
         HashMap<Integer, ArrayList> unsolvedMap = new HashMap<Integer, ArrayList>();
         boolean result;
@@ -129,28 +118,37 @@ class ForceSolver extends Thread {
         }
 
         // Recursive call
-        result = forceLoop(matrix, unsolvedMap, 0);
-        grid.getLogger().log(Level.INFO, "Force loop {1} :: solution: {0}",
-                new Object[]{result, this.getName()});
-        if (result) return matrix;
-        else return null;
+        result = forceLoop(matrix, unsolvedMap, 0, resultMatrix);
+        grid.getLogger().log(Level.INFO, "Force loop {0} :: solution: {1}",
+                new Object[]{this.getName(), result});
+
+        if (result) {
+            return resultMatrix;
+        } else {
+            return null;
+        }
     }
 
-    private boolean forceLoop(ArrayList<Integer> matrix, HashMap<Integer, ArrayList> unsolvedMap, int cellIndex) throws InvalidGridException {
+    private boolean forceLoop(ArrayList<Integer> matrix, HashMap<Integer, ArrayList> unsolvedMap, int cellIndex, ArrayList<Integer> resultMatrix) throws InvalidGridException {
         //ArrayList<Integer> solution;
         ArrayList<Integer> possibleValues = unsolvedMap.get(cellIndex);
+        boolean result = false;
 
         // Exit force solve if any other thread found a solution
-        if (solutionFound.get()) {
+        if (ForceSolver.firstSolution && solutionFound.get()) {
             grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
             throw new InvalidGridException("Thread exiting due to solutionFound == true : " + this.getName());
         }
 
-        if (possibleValues == null) { // Cell has final value
+        if (possibleValues == null) { // Cell has final value, no loop on values
             if (cellIndex == 80) { // Final cell reached
+                ForceSolver.solutions.incrementAndGet();
+                if (resultMatrix.size() == 0) {
+                    copyMatrix(matrix, resultMatrix);
+                }
                 return true;
             } else { // This cell is defined, no other possible values: iterate recursion
-                return forceLoop(matrix, unsolvedMap, cellIndex + 1);
+                return forceLoop(matrix, unsolvedMap, cellIndex + 1, resultMatrix);
             }
         }
 
@@ -158,16 +156,26 @@ class ForceSolver extends Thread {
             matrix.set(cellIndex, val);
             if (checkMatrix(matrix)) { // If value is applicable:
                 if (cellIndex == 80) { // Return true on last cell
-                    return true;
+                    ForceSolver.solutions.incrementAndGet();
+                    if (resultMatrix.size() == 0) {
+                        copyMatrix(matrix, resultMatrix);
+                    }
+                    result = true;
                 } else { // Recursive call with next cell
-                    if (forceLoop(matrix, unsolvedMap, cellIndex + 1)) {
-                        return true;
+                    if (forceLoop(matrix, unsolvedMap, cellIndex + 1, resultMatrix)) {
+                        result = true;
                     }
                 }
             }
         }
         matrix.set(cellIndex, 0); // Restore 0 value before reverse recursion
-        return false;
+        return result;
+    }
+
+    private void copyMatrix(ArrayList<Integer> matrix, ArrayList<Integer> resultMatrix) {
+        for (int i = 0; i < 81; i++) {
+            resultMatrix.add(i, matrix.get(i));
+        }
     }
 
     private boolean checkMatrix(ArrayList<Integer> matrix) {
@@ -245,6 +253,14 @@ class ForceSolver extends Thread {
     static void reset() {
         ForceSolver.originGrid = null;
         ForceSolver.solutionFound.set(false);
+        ForceSolver.solutions.set(0);
     }
 
+    public static int getSolutions() {
+        return solutions.get();
+    }
+
+    public static Grid getOriginGrid() {
+        return originGrid;
+    }
 }

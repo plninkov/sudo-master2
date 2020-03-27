@@ -15,16 +15,12 @@ class Solver {
 
         if (grid.getSolvedCells() < 81) {
             forceSolveThreads(grid);
-
         }
         logger.log(Level.FINE, "Solving {0}, Result status: {1}, solved cells: {2}", new Object[]{grid.getName(), grid.getStatus().toString(), grid.getSolvedCells()});
     }
 
     static void forceSolveThreads(Grid grid) {
-        //    Grid forcedGrid = null;
-        //     ForceSolver solver;
         int forceThreadsNum;
-        //     ForceSolver[] forceThreads;
         Logger logger = grid.getLogger();
         CountDownLatch doneSignal;
 
@@ -37,7 +33,6 @@ class Solver {
             index++;
         }
         forceThreadsNum = grid.getCreateCell(index).getPossibleValues().size();
-        //   forceThreads = new ForceSolver[forceThreadsNum];
         doneSignal = new CountDownLatch(forceThreadsNum);
 
         // Start threads
@@ -54,22 +49,8 @@ class Solver {
             e.printStackTrace();
             grid.getLogger().log(Level.SEVERE, "Exception {0}", e.getStackTrace());
         }
-        // Alternatively - use join on all threads
-        /*for (int i = 0; i < forceThreadsNum; i++) {
-            try {
-                grid.getLogger().log(Level.FINEST, "Join() {0}", forceThreads[i].getName());
-                forceThreads[i].join();
-            } catch (InterruptedException e) {
-                grid.getLogger().log(Level.SEVERE, "Exception {0}", e.getStackTrace());
-                System.out.println("Exception joining: " + e);
-            }
-        }
-
-        for (ForceSolver fs : forceThreads) {
-            if (fs.isSolved()) {
-                forcedGrid = fs.getGrid();
-                break;
-            }
-        } */
-    }
+        grid.setSolution (ForceSolver.getOriginGrid());
+        grid.setSolutionNumber(ForceSolver.getSolutions());
+        grid.setStatus(ForceSolver.getOriginGrid().getStatus());
+     }
 }

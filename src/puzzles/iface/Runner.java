@@ -47,7 +47,7 @@ public class Runner {
                 bw.write(s);
                 bw.newLine();
             }
-            bw.write(String.format("Solving status: %s; Solving time: %d%n", grid.getStatus(), System.currentTimeMillis() - startTime));
+            bw.write(String.format("Solving status: %s; Solution number: %d; Solving time: %d%n", grid.getStatus(), grid.getSolutionNumber(), System.currentTimeMillis() - startTime));
             bw.close();
         } catch (IOException e) {
             e.printStackTrace();
