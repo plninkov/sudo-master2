@@ -1,11 +1,16 @@
-package puzzles.sudoku;
+package sudoku;
 
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-// Looking for logical solution of the quiz
-// Setting all cell with only one possible value
+/**
+ * Abstract class to group the methods
+ * looking for logical solution of the quiz
+ * Defining value for all cell with only one possible value
+ *
+ * ToDo: Can be improved to look for two cells with the same pair of possible values
+ */
 abstract class LogicalSolver {
 
     enum Group {
@@ -14,8 +19,18 @@ abstract class LogicalSolver {
         BLOCK
     }
 
+    /**
+     * Entry point for logical solving of a quiz
+     * Quiz has to be passed as parameter of type Grid
+     *
+     * @param grid
+     * @throws InvalidGridException exception if quiz is incorrect (no possible solution)
+     */
     public static void solve(Grid grid) throws InvalidGridException {
+        Logger logger = grid.getLogger();
         int solvedCells;
+               logger.log(Level.FINE, "Logical solving: {0}; Solved cells: {1}; Waiting to process: {2}",
+                       new Object[] {grid.getName(), grid.getSolvedCells(), grid.getWaitingToProcess().size()});
         do {
             solvedCells = grid.getSolvedCells();
             while (grid.getWaitingToProcess().size() > 0) {
@@ -24,13 +39,21 @@ abstract class LogicalSolver {
             LogicalSolver.setUniquePossibilities(grid);
         } while (grid.getSolvedCells() > solvedCells);
         if (grid.getSolvedCells() == 81) {
-            grid.setStatus(Grid.Solution.LOGICAL);
+            grid.setStatus(Grid.SolutionStatus.LOGICAL);
             grid.setSolutionNumber(1);
         }
+        logger.log(Level.FINE, "Exit logical solving: {0}; Solved cells: {1}; Waiting to process: {2}",
+                new Object[] {grid.getName(), grid.getSolvedCells(), grid.getWaitingToProcess().size()});
     }
 
-    // process all cells with defined value and
-    // remove from the possible values on the same row; col and block
+    /**
+     * Processes all cells with recently defined final value and
+     * remove the value from the possible values on the same row; col and block.
+     * Updates the list with recently defined values, thus can be called in a loop until the list is empty.
+     *
+     * @param grid
+     * @throws InvalidGridException
+     */
     private static void processWaitingElements(Grid grid) throws InvalidGridException {
         ArrayList<Integer> newWaitingList = new ArrayList<Integer>();
         int row, col;
@@ -71,17 +94,20 @@ abstract class LogicalSolver {
     }
 
 
-    // look for values that are possible on single cell
-    // looping trough columns, lines, blocks
+    /**
+     * Looping trough columns, lines, blocks
+     * looks for a value with only one possible place (cell) in this cell, line or block
+     *
+     *
+     * @param grid
+     */
     private static void setUniquePossibilities(Grid grid) {
         Cell cell;
         ArrayList<Integer> finalValueList = new ArrayList<>(); // Store list with already fixed values for row, column or block
         ArrayList<Integer>[] valueMap; // Map each value ( 0 to 8 ) with possible positions list
-        Logger logger = grid.getLogger();
 
         //*** LOOP on columns ***
-        //       logger.log(Level.FINE, "Columns, waiting elements {0}", grid.getWaitingToProcess().size());
-        for (int c = 0; c < 9; c++) {
+                for (int c = 0; c < 9; c++) {
             valueMap = getValueMap(grid, Group.COL, c, finalValueList);
             // Look for each values with single occurrence in possibilities for the column
             for (int val = 0; val < 9; val++) { // For each value with only one possible place in valueMap and not already final in column
@@ -89,14 +115,12 @@ abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
-                }
+                                    }
             }
         }
 
         //*** loop on rows ***
-        //       logger.log(Level.FINE, "Rows, waiting elements {0}", grid.getWaitingToProcess().size());
-        for (int r = 0; r < 9; r++) {
+                for (int r = 0; r < 9; r++) {
             valueMap = getValueMap(grid, Group.ROW, r, finalValueList);
             // Look for value single occurrence in possibilities for the row
             for (int val = 0; val < 9; val++) {  // For each value with only one possible place in valueMap and not already final
@@ -104,14 +128,12 @@ abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    //                 logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
-                }
+                                    }
             }
         }
 
         //*** loop on blocks 3x3 cells ***
-        //      logger.log(Level.FINE, "Blocks, waiting elements {0}", grid.getWaitingToProcess().size());
-        int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
+                int[] blockList = {0, 3, 6, 27, 30, 33, 54, 57, 60};
         for (int c : blockList) {
             valueMap = getValueMap(grid, Group.BLOCK, c, finalValueList);
             // Look for value single occurrence in possibilities for the block
@@ -120,16 +142,23 @@ abstract class LogicalSolver {
                     cell = grid.getCreateCell(valueMap[val].get(0));
                     cell.setFinalValue(val + 1);
                     grid.addWaitingToProcess(valueMap[val].get(0));
-                    //                  logger.log(Level.FINER, "Set in cell {0}{1} value {2}", new Object[]{cell.getRow(), cell.getCol(), val + 1});
-                }
+                                    }
             }
         }
-        //       logger.log(Level.INFO, "Exit Unique possibilities {0}", grid.getWaitingToProcess().size());
-    }
+            }
 
-    // For given column, row or block
-    // builds a map (using ArrayList): Each value is mapped with a list of possible places
-    // Updates finalValueList with all values that are set to their final place
+
+    /**
+     * builds a map (ArrayList<Integer>[9]): Each value (0 to 8) is mapped with a list of possible places in given group of 9 cells
+     * Updates parameter finalValueList with all values that are already set to their final place
+     * *
+     *
+     * @param grid
+     * @param group          (COL, ROW, BLOCK)
+     * @param ind            - index of the group from 0 to 8
+     * @param finalValueList - used to avoid re-set of a value that is already final
+     * @return
+     */
     private static ArrayList<Integer>[] getValueMap(Grid grid, Group group, int ind, ArrayList<Integer> finalValueList) {
         ArrayList<Integer>[] valueMap = new ArrayList[9];
         ArrayList<Integer> valuesList;

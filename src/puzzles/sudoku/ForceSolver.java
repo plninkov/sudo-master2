@@ -1,4 +1,4 @@
-package puzzles.sudoku;
+package sudoku;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,30 +7,40 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-// Looping on all unsolved cells and checks if any combination is valid
+/**
+ * Allows multi-threading when trying force solve of a quest.
+ * Multi-threads are started on one particular cell for each possible value
+ * looping on all other unsolved cells and trying all values possible for the cell
+ * Allows counting all possible solutions for a quest by updating sys params MAX_SOLUTIONS and FIRST_SOLUTION
+ * NOTE currently can be used with only one quest at a time because of usage of static variables
+ * To be updated for usage with several quests solving simultaneously
+ */
 class ForceSolver extends Thread {
+    // If FIRST_SOLUTION = yes, break-out of all threads when a solution is found
+    private static final boolean FIRST_SOLUTION = false;
+    // Max number of solutions to look for when FIRST_SOLUTION = false
+    private static final int MAX_SOLUTIONS = 10000;
+
     private static Grid originGrid = null; // Store origin grid for all threads
     private static AtomicBoolean solutionFound = new AtomicBoolean(false);
     private static AtomicInteger solutions = new AtomicInteger(0); // Possible solution counter
-    private static final boolean firstSolution = false; // Look and count all solutions
 
     private int forceCellIndex;
     private int forceValIndex;
     private Grid grid; // Clone of the original grid for brut force solving
     private CountDownLatch doneSignal;
 
+    /**
+     * @param entryGrid  The quest to solve
+     * @param forceCell  Cell on which multi-threads are started
+     * @param forceVal   Index of this particular thread giving the value in possibleValue list for the cell
+     * @param doneSignal CountDownLatch
+     */
+    public ForceSolver(Grid entryGrid, int forceCell, int forceVal, CountDownLatch doneSignal) throws InvalidGridException {
+        super("Thread: " + entryGrid.getName() + " cell: " + forceCell + " ind: " + forceVal);
 
-    public ForceSolver(Grid entryGrid, int forceCell, int forceVal, CountDownLatch doneSignal) {
-        super("Thread: " + forceCell + " " + forceVal);
-
-        try {
-            if (ForceSolver.originGrid == null && entryGrid.getWaitingToProcess() != null && entryGrid.getWaitingToProcess().size() > 0)
-                throw new InvalidGridException("Force solving before clearing waiting to process elements: " + this.getName());
-        } catch (InvalidGridException e) {
-            entryGrid.getLogger().log(Level.WARNING, "ForceSolve Exception {0}, Solver: {1}",
-                    new Object[]{entryGrid.getWaitingToProcess().toString(), this.getName()});
-            System.out.println("Force solve error " + e);
-        }
+        if (ForceSolver.originGrid == null && entryGrid.getWaitingToProcess() != null && entryGrid.getWaitingToProcess().size() > 0)
+            throw new InvalidGridException("Incorrect call to ForceSolver. Complete logical solving and clear waiting to process elements. Thread: " + this.getName());
         this.doneSignal = doneSignal;
         synchronized (ForceSolver.class) {
             if (ForceSolver.originGrid == null) ForceSolver.originGrid = entryGrid.clone();
@@ -38,11 +48,7 @@ class ForceSolver extends Thread {
         this.grid = entryGrid.clone();
         this.forceCellIndex = forceCell;
         this.forceValIndex = forceVal;
-        grid.getLogger().log(Level.FINE, "ForceSolve created successfully {0}", this.getName());
-    }
-
-    public boolean isSolved() {
-        return grid.getSolvedCells() == 81;
+        grid.getLogger().log(Level.FINE, "ForceSolve thread created successfully: {0}", this.getName());
     }
 
     @Override
@@ -50,48 +56,64 @@ class ForceSolver extends Thread {
         ArrayList<Integer> matrix;
         Cell fixCell = this.grid.getCreateCell(forceCellIndex);
 
-        if (ForceSolver.firstSolution && ForceSolver.solutionFound.get()) {
-            grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
+        // Check if solution is found by other thread and complete the run
+        if (ForceSolver.FIRST_SOLUTION && ForceSolver.solutionFound.get()) {
+            grid.getLogger().log(Level.SEVERE, "Thread {0} exit due to solutionFound in other thread ", this.getName());
             doneSignal.countDown();
         } else {
+
+            /**
+             * Update defined cell with value for the thread.
+             * Try logical solving for optimization purpose.
+             */
             fixCell.setFinalValue(fixCell.getPossibleValues().get(forceValIndex));
             this.grid.addWaitingToProcess(forceCellIndex);
-            // Logical processing after set value
             try {
+                // LOGICAL processing
                 LogicalSolver.solve(this.grid);
-                if (isSolved() && ForceSolver.solutionFound.compareAndSet(false, true)) {
-                    synchronized (ForceSolver.originGrid) {
-                        ForceSolver.originGrid.setSolution(grid);
-                        ForceSolver.originGrid.setStatus(Grid.Solution.FORCELOGICAL);
-                    }
+                /**
+                 * Only the first solution found is set in the result grid
+                 */
+                if (isSolved()) {
+                    if (ForceSolver.solutionFound.compareAndSet(false, true))
+                        synchronized (ForceSolver.originGrid) {
+                            ForceSolver.originGrid.setSolution(grid);
+                            ForceSolver.originGrid.setStatus(Grid.SolutionStatus.FORCELOGICAL);
+                        }
                     ForceSolver.solutions.incrementAndGet();
-                    grid.getLogger().log(Level.SEVERE, "Force solve {0} success (logical try) on cell {1}, value index {2}",
-                            new Object[]{this.getName(), " " + forceCellIndex, (" " + forceValIndex)});
+                    grid.getLogger().log(Level.INFO, "Force solve {0} success with LOGICAL try.", this.getName());
                 } else {
-                    // Force solution
+                    // FORCE process
                     matrix = forceLoop();
-                    //Store solution in grid
+                    /**
+                     * Only the first solution found is set in the result grid
+                     */
                     if (matrix != null && ForceSolver.solutionFound.compareAndSet(false, true)) {
-                        grid.getLogger().log(Level.SEVERE, "Force solve {2} success (forced try) on cell {0}, value index {1}",
-                                new String[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName()});
+                        grid.getLogger().log(Level.INFO, "Force solve {0} success with force try.", this.getName());
                         synchronized (ForceSolver.originGrid) {
                             ForceSolver.originGrid.setSolution(matrix);
-                            ForceSolver.originGrid.setStatus(Grid.Solution.FORCE);
+                            ForceSolver.originGrid.setStatus(Grid.SolutionStatus.FORCE);
                         }
                     } else {
-                        grid.getLogger().log(Level.SEVERE, "No solution found {0} :: exiting", this.getName());
+                        grid.getLogger().log(Level.FINER, "No solution found {0}", this.getName());
                     }
                 }
             } catch (InvalidGridException e) {
-                System.out.format("Force solve failed on cell %d, value index %d, reason: %s%n", forceCellIndex, forceValIndex, e.getMessage());
-                grid.getLogger().log(Level.SEVERE, "Force solve {2} failed on cell {0}, value index {1}, Message: {3}",
-                        new Object[]{(" " + forceCellIndex), (" " + forceValIndex), this.getName(), e.getMessage()});
+                grid.getLogger().log(Level.SEVERE, "Force solve {0} exception, Message: {1}",
+                        new Object[]{this.getName(), e.getMessage()});
             } finally {
                 doneSignal.countDown();
             }
         }
     }
 
+    /**
+     * Perform force solve of a quiz.
+     * call a recursive method forceLoop
+     *
+     * @return
+     * @throws InvalidGridException when no solution is found
+     */
     private ArrayList<Integer> forceLoop() throws InvalidGridException {
         ArrayList<Integer> matrix = new ArrayList<>(81);
         ArrayList<Integer> resultMatrix = new ArrayList<>(81);
@@ -99,9 +121,11 @@ class ForceSolver extends Thread {
         HashMap<Integer, ArrayList> unsolvedMap = new HashMap<Integer, ArrayList>();
         boolean result;
 
-        // Prepare matrix of Integers for force solving
-        // Initialize 0 where no definitive solution
-        // Build map of undefined values unsolvedMap
+        /**
+         * Prepare matrix variable with ArrayList of Integers used for force solving.
+         * Initialize 0 where no definitive solution
+         * Build unsolvedMap variable to map on each unsolved cell ArrayList with possible values
+         */
         for (int i = 0; i < 81; i++) {
             cell = grid.getCreateCell(i);
             if (cell.isFinal()) {
@@ -109,15 +133,16 @@ class ForceSolver extends Thread {
             } else {
                 ArrayList<Integer> possibleValues = cell.getPossibleValues();
                 if (possibleValues.size() < 2) {
-                    grid.getLogger().log(Level.SEVERE, "Possible values too short {0}", possibleValues);
-                    throw new InvalidGridException("Possible values too short");
+                    throw new InvalidGridException("Possible values too short (Improper logical solve!!!): " + possibleValues);
                 }
                 matrix.add(i, 0);
                 unsolvedMap.put(i, possibleValues);
             }
         }
 
-        // Recursive call
+        /**
+         * Initialize recursive call to forceLoop
+         */
         result = forceLoop(matrix, unsolvedMap, 0, resultMatrix);
         grid.getLogger().log(Level.INFO, "Force loop {0} :: solution: {1}",
                 new Object[]{this.getName(), result});
@@ -129,17 +154,30 @@ class ForceSolver extends Thread {
         }
     }
 
+    /**
+     * Recursive method force-solving sudoku grid
+     * Called with cellIndex = 0 performing recursive call until cellIndex = 80
+     * implemented with a cycle on each possible value for the cell
+     *
+     * @param matrix       sudoku quest
+     * @param unsolvedMap  HashMap with all unsolved cells and their possible values
+     * @param cellIndex    index of cell for the recursive call
+     * @param resultMatrix first possible solution found for the matrix
+     * @return boolean result if a solution is possible
+     * @throws InvalidGridException exception is thrown if a solution is found meanwhile by other thread
+     */
     private boolean forceLoop(ArrayList<Integer> matrix, HashMap<Integer, ArrayList> unsolvedMap, int cellIndex, ArrayList<Integer> resultMatrix) throws InvalidGridException {
-        //ArrayList<Integer> solution;
         ArrayList<Integer> possibleValues = unsolvedMap.get(cellIndex);
         boolean result = false;
 
         // Exit force solve if any other thread found a solution
-        if (ForceSolver.firstSolution && solutionFound.get()) {
-            grid.getLogger().log(Level.SEVERE, "Thread {0} :: exiting due to solutionFound == true ", this.getName());
-            throw new InvalidGridException("Thread exiting due to solutionFound == true : " + this.getName());
+        if (ForceSolver.FIRST_SOLUTION && solutionFound.get()) {
+            throw new InvalidGridException("Thread exit due to solutionFound: " + this.getName());
         }
 
+        /**
+         * Skip cycle on cells with final value.
+         */
         if (possibleValues == null) { // Cell has final value, no loop on values
             if (cellIndex == 80) { // Final cell reached
                 ForceSolver.solutions.incrementAndGet();
@@ -152,6 +190,9 @@ class ForceSolver extends Thread {
             }
         }
 
+        /**
+         * for cycle on each possible value for the cell.
+         */
         for (Integer val : possibleValues) { //loop all possible values for the cell
             matrix.set(cellIndex, val);
             if (checkMatrix(matrix)) { // If value is applicable:
@@ -161,9 +202,16 @@ class ForceSolver extends Thread {
                         copyMatrix(matrix, resultMatrix);
                     }
                     result = true;
+                    // break for loop if enough solutions found
+                    if (ForceSolver.FIRST_SOLUTION || ForceSolver.getSolutions() > ForceSolver.MAX_SOLUTIONS) {
+                        break;
+                    }
                 } else { // Recursive call with next cell
                     if (forceLoop(matrix, unsolvedMap, cellIndex + 1, resultMatrix)) {
                         result = true;
+                        if (ForceSolver.FIRST_SOLUTION || ForceSolver.getSolutions() > ForceSolver.MAX_SOLUTIONS) {
+                            break;
+                        }
                     }
                 }
             }
@@ -262,5 +310,14 @@ class ForceSolver extends Thread {
 
     public static Grid getOriginGrid() {
         return originGrid;
+    }
+
+    /**
+     * Check if grid is solved
+     *
+     * @return boolean
+     */
+    public boolean isSolved() {
+        return grid.getSolvedCells() == 81;
     }
 }

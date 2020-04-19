@@ -1,4 +1,4 @@
-package puzzles.sudoku;
+package sudoku;
 
 public class InvalidGridException extends Exception {
     public InvalidGridException(String message) {

@@ -1,0 +1,57 @@
+Get collection of quizzes:
+HTTP GET /QuizService/quizzes
+
+Get collection of solutions:
+HTTP GET /QuizService/solutions
+
+Read quiz solution:
+HTTP GET /QuizService/solution/{id}
+
+Get quiz details:
+HTTP GET /QuizService/quiz/{id}
+
+Create new quiz:
+HTTP POST /QuizService/quiz
+with xml body:
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<quiz id="42">
+    <quest>
+        <line id="1">0,0,3,8,7,5,0,0,0</line>
+        <line id="2">0,0,0,0,0,0,0,9,0</line>
+        <line id="3">1,0,0,0,0,3,4,0,0</line>
+        <line id="4">0,0,9,6,0,0,0,0,8</line>
+        <line id="5">0,7,0,0,8,0,0,1,0</line>
+        <line id="6">8,0,0,0,0,9,5,0,0</line>
+        <line id="7">0,0,8,1,0,0,0,0,7</line>
+        <line id="8">0,1,0,0,0,0,0,0,0</line>
+        <line id="9">0,0,0,5,4,8,3,0,0</line>
+    </quest>
+    <name>First solved quiz. Quiz q42 </name>
+    <published>false</published>
+</quiz>
+
+Read quiz solution:
+HTTP GET /QuizService/solution/{id}
+
+Modify existing quiz:
+HTTP PUT /QuizService/quiz/{id}
+parameters: updateID=6&UpdateName=New name&publish=true
+
+Change quest in existing quiz:
+HTTP PATCH /QuizService/quiz/{id}
+with xml body the new quest:
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <quest>
+        <line id="1">0,0,3,8,7,5,0,0,0</line>
+        <line id="2">0,0,0,0,0,0,0,9,0</line>
+        <line id="3">1,0,0,0,0,3,4,0,0</line>
+        <line id="4">0,0,9,6,0,0,0,0,8</line>
+        <line id="5">0,7,0,0,8,0,0,1,0</line>
+        <line id="6">8,0,0,0,0,9,5,0,0</line>
+        <line id="7">0,0,8,1,0,0,0,0,7</line>
+        <line id="8">0,1,0,0,0,0,0,0,0</line>
+        <line id="9">0,0,0,5,4,8,3,0,0</line>
+    </quest>
+
+Delete existing quiz:
+HTTP DELETE /QuizService/quizzes/{id}
