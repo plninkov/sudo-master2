@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TestThis/TestThis.iml" filepath="$PROJECT_DIR$/TestThis/TestThis.iml" />
-      <module fileurl="file://$PROJECT_DIR$/sudo-master.iml" filepath="$PROJECT_DIR$/sudo-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/src/puzzles/puzzles.iml" filepath="$PROJECT_DIR$/src/puzzles/puzzles.iml" />
+      <module fileurl="file://$PROJECT_DIR$/webAPI/webAPI.iml" filepath="$PROJECT_DIR$/webAPI/webAPI.iml" />
     </modules>
   </component>
 </project>

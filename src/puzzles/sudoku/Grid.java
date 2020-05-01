@@ -1,4 +1,4 @@
-package puzzles.sudoku;
+package sudoku;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -7,18 +7,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Grid {
-    private int[][] quest;
     private ArrayList<Cell> grid;
     private ArrayList<Integer> waitingToProcess; // Cells with defined solution to remove from possible numbers
     private Logger logger;
     private int solvedCells;
     private String name;
-    private Solution status;
+    private SolutionStatus status;
+    private int solutionNumber;
+    private long solvingTime;
 
-    enum Solution {
+    public enum SolutionStatus {
         INITIAL,
         LOGICAL,
         FORCE,
+        FORCELOGICAL,
         MULTIPLE
     }
 
@@ -29,7 +31,6 @@ public class Grid {
         grid = new ArrayList<Cell>(81);
         waitingToProcess = new ArrayList<Integer>();
         this.solvedCells = 0;
-        quest = entryList;
 
         //Logger with file handler
         logger = Logger.getLogger(Grid.class.getName());
@@ -50,7 +51,7 @@ public class Grid {
             }
         }
         this.name = name;
-        status = Solution.INITIAL;
+        status = SolutionStatus.INITIAL;
         logger.log(Level.FINE, "Grid created {0};", new Object[]{name});
     }
 
@@ -70,10 +71,6 @@ public class Grid {
         return name;
     }
 
-    public ArrayList<Cell> getGrid() {
-        return grid;
-    }
-
     public ArrayList<Integer> getWaitingToProcess() {
         return waitingToProcess;
     }
@@ -82,7 +79,15 @@ public class Grid {
         this.waitingToProcess = waitingToProcess;
     }
 
-    public void setStatus(Solution solution) {
+    public int getSolutionNumber() {
+        return solutionNumber;
+    }
+
+    public void setSolutionNumber(int solutionNumber) {
+        this.solutionNumber = solutionNumber;
+    }
+
+    public void setStatus(SolutionStatus solution) {
         this.status = solution;
     }
 
@@ -118,8 +123,16 @@ public class Grid {
         return cell;
     }
 
-    public Solution getStatus() {
+    public SolutionStatus getStatus() {
         return status;
+    }
+
+    public long getSolvingTime() {
+        return solvingTime;
+    }
+
+    public void setSolvingTime(long solvingTime) {
+        this.solvingTime = solvingTime;
     }
 
     public String[] print() {
@@ -148,14 +161,31 @@ public class Grid {
         clonedGrid.logger = this.logger;
         clonedGrid.solvedCells = this.solvedCells;
         clonedGrid.name = this.name;
+        clonedGrid.status = this.status;
         for (int index = 0; index < 81; index++) {
             clonedGrid.grid.add(index, new Cell(getCreateCell(index), clonedGrid));
         }
         return clonedGrid;
     }
 
-    public void solve(){
+    public void solve() throws InvalidGridException {
         Solver.solve(this);
 
+    }
+
+    public void setSolution(Grid solution) {
+        for (int i = 0; i < 81; i++) {
+            if (!this.getCreateCell(i).isFinal()) { //For all non-final cells
+                this.getCreateCell(i).setFinalValue(solution.getCreateCell(i).getSelectedValue()); // Set value
+            }
+        }
+    }
+
+    public void setSolution(ArrayList<Integer> matrix) {
+        for (int i = 0; i < 81; i++) {
+            if (!this.getCreateCell(i).isFinal()) { //For all non-final cells
+                this.getCreateCell(i).setFinalValue(matrix.get(i)); // Set value
+            }
+        }
     }
 }
