@@ -9,13 +9,18 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-
+/**
+ * ToDo Add query parameters to HTTP GET /quizzes
+ * ToDo Create quiz with HTTP POST, returning the location
+ * ToDo PUT /quizzes/{id} - response 200 if updated; 201 if created
+ * ToDo Get rid of parameters in to achieve PATCH for pure REST
+ */
 @Path("/QuizService")
 @Consumes(MediaType.APPLICATION_XML)
 public class WebQuiz {
 
     @POST
-    @Path("/quiz")
+    @Path("/quizzes")
     @Produces(MediaType.APPLICATION_XML)
     public Response createQuiz(Quiz quiz) throws InvalidRequestException {
         QuizProcessor.createQuiz(quiz);
@@ -25,7 +30,7 @@ public class WebQuiz {
     }
 
     @GET
-    @Path("/quiz/{id}")
+    @Path("/quizzes/{id}")
     @Produces(MediaType.APPLICATION_XML)
     public Response getQuiz(@PathParam("id") int id) throws InvalidRequestException {
         return Response.status(200)
@@ -35,28 +40,28 @@ public class WebQuiz {
     }
 
     @DELETE
-    @Path("/quiz/{id}")
+    @Path("/quizzes/{id}")
     @Produces(MediaType.TEXT_PLAIN)
     public Response deleteQuiz(@PathParam("id") int id) throws InvalidRequestException {
-        return Response.status(200)
-                .entity(QuizProcessor.deleteQuiz(id))
+        QuizProcessor.deleteQuiz(id);
+        return Response.status(204)
                 .build();
     }
 
     @PUT
-    @Path("/quiz/{id}")
+    @Path("/quizzes/{id}")
     @Produces(MediaType.APPLICATION_XML)
     public Response updateQuiz(@PathParam("id") int id,
                                @QueryParam("updateID") String newIdStr,
                                @QueryParam("UpdateName") String nameStr,
                                @QueryParam("publish") String pubishStr) throws InvalidRequestException {
-        return Response.status(200)
+        return Response.status(201)
                 .entity(QuizProcessor.updateQuiz(id, newIdStr, nameStr, pubishStr))
                 .build();
     }
 
     @PATCH
-    @Path("/quiz/{id}")
+    @Path("/quizzes/{id}")
     @Produces(MediaType.APPLICATION_XML)
     public Response changeQuiz(@PathParam("id") int id, Line[] lines) throws InvalidRequestException {
         return Response.status(201)
@@ -83,7 +88,7 @@ public class WebQuiz {
     }
 
     @GET
-    @Path("/solution/{id}")
+    @Path("/solutions/{id}")
     @Produces(MediaType.APPLICATION_XML)
     public Response getSolution(@PathParam("id") int id) throws InvalidRequestException {
         return Response.status(200)
