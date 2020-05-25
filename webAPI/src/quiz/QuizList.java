@@ -2,10 +2,18 @@ package quiz;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Temporary class
+ * Sores Map with all quizzes and Map with all solutions
+ * To be replaced with db connection
+ */
 
 abstract class QuizList {
     private static HashMap<Integer, Quiz> quizMap = new HashMap<>();
     private static HashMap<Integer, Solution> solutionMap = new HashMap<>();
+    private static AtomicInteger idCounter = new AtomicInteger();
 
     public QuizList() {
     }
@@ -44,6 +52,14 @@ abstract class QuizList {
     public static void removeQuiz(int id) {
         quizMap.remove(id);
         solutionMap.remove(id);
+    }
+
+    public static int getNextId() {
+        int id;
+        do {
+            id = idCounter.incrementAndGet();
+        } while (quizMap.get(id) != null);
+        return id;
     }
 //    public static void addSolution(Solution solution) { solutionMap.put(solution.getQuizID(), solution); }
 

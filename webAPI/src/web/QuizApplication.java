@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @ApplicationPath("/")
-public class MyApplication extends Application {
+public class QuizApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         HashSet h = new HashSet<Class<?>>();

@@ -1,20 +1,23 @@
 Get collection of quizzes:
-HTTP GET /QuizService/quizzes
+ GET /QuizService/quizzes HTTP/1.1
 
 Get collection of solutions:
-HTTP GET /QuizService/solutions
+ GET /QuizService/solutions HTTP/1.1
 
 Read quiz solution:
-HTTP GET /QuizService/solution/{id}
+ GET /QuizService/solution/{id} HTTP/1.1
 
 Get quiz details:
-HTTP GET /QuizService/quiz/{id}
+ GET /QuizService/quiz/{id} HTTP/1.1
+
+Read quiz solution:
+ GET /QuizService/solution/{id} HTTP/1.1
 
 Create new quiz:
-HTTP POST /QuizService/quiz
+ POST /QuizService/quizzes HTTP/1.1
 with xml body:
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<quiz id="42">
+<quiz>
     <quest>
         <line id="1">0,0,3,8,7,5,0,0,0</line>
         <line id="2">0,0,0,0,0,0,0,9,0</line>
@@ -29,16 +32,14 @@ with xml body:
     <name>First solved quiz. Quiz q42 </name>
     <published>false</published>
 </quiz>
-
-Read quiz solution:
-HTTP GET /QuizService/solution/{id}
+NOTE: Quiz id is automatically generated.
 
 Modify existing quiz:
-HTTP PUT /QuizService/quiz/{id}
+ PUT /QuizService/quizzes/{id} HTTP/1.1
 parameters: updateID=6&UpdateName=New name&publish=true
 
 Change quest in existing quiz:
-HTTP PATCH /QuizService/quiz/{id}
+ PATCH /QuizService/quizzes/{id} HTTP/1.1
 with xml body the new quest:
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <quest>
@@ -54,4 +55,4 @@ with xml body the new quest:
     </quest>
 
 Delete existing quiz:
-HTTP DELETE /QuizService/quizzes/{id}
+ DELETE /QuizService/quizzes/{id} HTTP/1.1

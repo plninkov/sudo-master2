@@ -12,14 +12,15 @@ public abstract class QuizProcessor {
     public static void createQuiz(Quiz quiz) throws InvalidRequestException {
         int id = quiz.getQuizID();
         Grid grid;
-
+/*
         if (id == 0) {
             throw new InvalidRequestException("Incorrect or zero quiz id!", 400);
         }
         if (QuizList.getQuiz(id) != null) {
             throw new InvalidRequestException("Quiz " + id + " already exist!", 409);
         }
-
+*/
+        quiz.setQuizID(QuizList.getNextId());
         try {
             String[] lines = quiz.getLines();
             grid = Runner.processQuiz(lines, quiz.getName());
