@@ -3,8 +3,7 @@ package web;
 import quiz.*;
 
 import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.*;
 import java.net.URI;
 
 /**
@@ -57,11 +56,13 @@ public class WebQuiz {
     @POST
     @Path("/quizzes")
     @Produces(MediaType.APPLICATION_XML)
-    public Response createQuiz(Quiz quiz) throws InvalidRequestException {
+    public Response createQuiz(Quiz quiz, @Context UriInfo uriInfo) throws InvalidRequestException {
         QuizProcessor.createQuiz(quiz);
+        UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
+        uriBuilder.path(Integer.toString(quiz.getQuizID()));
         return Response.status(201)
                 .entity(quiz)
-                .link(URI.create("/quizzes/"+ quiz.getQuizID()), "Location")
+                .location(uriBuilder.build())
                 .build();
     }
 
